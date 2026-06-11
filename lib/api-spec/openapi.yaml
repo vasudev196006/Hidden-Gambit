@@ -3,13 +3,15 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Deception Chess API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: games
+    description: Game management
 paths:
   /healthz:
     get:
@@ -24,6 +26,138 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /games:
+    get:
+      operationId: listGames
+      tags: [games]
+      summary: List open games
+      responses:
+        "200":
+          description: List of open games
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/GameSummary"
+    post:
+      operationId: createGame
+      tags: [games]
+      summary: Create a new game
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GameInput"
+      responses:
+        "201":
+          description: Game created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GameJoin"
+
+  /games/{id}:
+    get:
+      operationId: getGame
+      tags: [games]
+      summary: Get game state
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Game state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GameState"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /games/{id}/join:
+    post:
+      operationId: joinGame
+      tags: [games]
+      summary: Join an existing game as the second player
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/JoinInput"
+      responses:
+        "200":
+          description: Joined successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GameJoin"
+        "400":
+          description: Game not joinable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /games/{id}/impostor:
+    post:
+      operationId: setImpostor
+      tags: [games]
+      summary: Submit secret impostor pawn selection
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ImpostorInput"
+      responses:
+        "200":
+          description: Impostor set
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ImpostorResult"
+        "400":
+          description: Invalid selection
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +168,172 @@ components:
       required:
         - status
 
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+
+    GameInput:
+      type: object
+      properties:
+        playerName:
+          type: string
+      required:
+        - playerName
+
+    JoinInput:
+      type: object
+      properties:
+        playerName:
+          type: string
+      required:
+        - playerName
+
+    ImpostorInput:
+      type: object
+      properties:
+        playerId:
+          type: string
+        pawnSquare:
+          type: string
+          description: "The square of the enemy pawn selected as impostor (e.g. 'a7')"
+      required:
+        - playerId
+        - pawnSquare
+
+    ImpostorResult:
+      type: object
+      properties:
+        success:
+          type: boolean
+        bothReady:
+          type: boolean
+      required:
+        - success
+        - bothReady
+
+    GameJoin:
+      type: object
+      properties:
+        gameId:
+          type: string
+        playerId:
+          type: string
+        color:
+          type: string
+          enum: [white, black]
+      required:
+        - gameId
+        - playerId
+        - color
+
+    GameSummary:
+      type: object
+      properties:
+        id:
+          type: string
+        status:
+          type: string
+          enum: [waiting, selecting, active, finished]
+        whitePlayerName:
+          type: string
+        blackPlayerName:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+      required:
+        - id
+        - status
+        - whitePlayerName
+        - createdAt
+
+    PieceInfo:
+      type: object
+      properties:
+        type:
+          type: string
+        color:
+          type: string
+        isImpostor:
+          type: boolean
+        isSecured:
+          type: boolean
+        impostorUsed:
+          type: boolean
+      required:
+        - type
+        - color
+        - isImpostor
+        - isSecured
+        - impostorUsed
+
+    GameState:
+      type: object
+      properties:
+        id:
+          type: string
+        status:
+          type: string
+          enum: [waiting, selecting, active, finished]
+        fen:
+          type: string
+          description: FEN string of the current board position
+        turn:
+          type: string
+          enum: [white, black]
+        whitePlayerName:
+          type: string
+        blackPlayerName:
+          type: ["string", "null"]
+        myColor:
+          type: ["string", "null"]
+          description: The requesting player's color (null if spectator)
+        myImpostorSquare:
+          type: ["string", "null"]
+          description: The square of the player's own impostor (only their own)
+        impostorReady:
+          type: boolean
+          description: Whether impostor selections are complete and game can start
+        whiteImpostorUsed:
+          type: boolean
+        blackImpostorUsed:
+          type: boolean
+        whiteImpostorRevealed:
+          type: ["string", "null"]
+          description: Square of revealed white impostor (null if still hidden)
+        blackImpostorRevealed:
+          type: ["string", "null"]
+          description: Square of revealed black impostor (null if still hidden)
+        whiteInvestigationUsed:
+          type: boolean
+        blackInvestigationUsed:
+          type: boolean
+        securedSquares:
+          type: array
+          items:
+            type: string
+          description: Squares of secured pawns
+        lastEvent:
+          type: ["string", "null"]
+          description: Description of last special event
+        winner:
+          type: ["string", "null"]
+          enum: [white, black, draw, null]
+        moveCount:
+          type: integer
+      required:
+        - id
+        - status
+        - fen
+        - turn
+        - whitePlayerName
+        - impostorReady
+        - whiteImpostorUsed
+        - blackImpostorUsed
+        - whiteInvestigationUsed
+        - blackInvestigationUsed
+        - securedSquares
+        - moveCount

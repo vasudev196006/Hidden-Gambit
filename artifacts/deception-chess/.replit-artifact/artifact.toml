@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "Deception Chess"
+version = "1.0.0"
+id = "artifacts/deception-chess"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 19141
+
+[services.development]
+run = "pnpm --filter @workspace/deception-chess run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/deception-chess", "run", "build" ]
+publicDir = "artifacts/deception-chess/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "19141"
+BASE_PATH = "/"
