@@ -61,8 +61,14 @@ export function registerGameSocket(io: SocketServer): void {
       socket.join(gameId);
       socket.data.gameId = gameId;
       socket.data.playerId = playerId;
-      socket.emit("gameState", buildGameState(game, playerId));
-      logger.info({ gameId, playerId }, "Player joined room");
+
+      // Broadcast updated state to EVERY socket in the room (not just the joiner).
+      // This is what wakes up Player 1 when Player 2 connects after a REST join.
+      const roomSockets = await io.in(gameId).fetchSockets();
+      logger.info({ gameId, playerId, roomSize: roomSockets.length }, "Player joined room — broadcasting to all");
+      for (const s of roomSockets) {
+        s.emit("gameState", buildGameState(game, s.data.playerId));
+      }
     });
 
     socket.on("makeMove", async ({

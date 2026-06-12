@@ -71,7 +71,15 @@ export default function Game() {
   const [lastMove, setLastMove] = useState<{ from: string; to: string } | null>(null);
 
   const { data: initialData, isLoading } = useGetGame(id!, {
-    query: { enabled: !!id, queryKey: getGetGameQueryKey(id!) },
+    query: {
+      enabled: !!id,
+      queryKey: getGetGameQueryKey(id!),
+      refetchInterval: (query) => {
+        const status = (query.state.data as any)?.status;
+        // Poll every 2s while waiting/selecting; stop once active or finished
+        return status === "waiting" || status === "selecting" ? 2000 : false;
+      },
+    },
   });
 
   const setImpostor = useSetImpostor();
@@ -109,8 +117,15 @@ export default function Game() {
   }, [id, toast, queryClient]);
 
   useEffect(() => {
-    if (initialData && !gameState) setGameState(initialData);
-  }, [initialData, gameState]);
+    if (!initialData) return;
+    // On first load, always apply. During waiting/selecting, keep polling data fresh
+    // so Player 1 sees Player 2 join even if a socket broadcast was missed.
+    setGameState((prev) => {
+      if (!prev) return initialData;
+      if (prev.status === "waiting" || prev.status === "selecting") return initialData;
+      return prev; // active/finished: socket is source of truth
+    });
+  }, [initialData]);
 
   const handleSelectImpostor = useCallback((square: string) => {
     if (!playerId || !id) return;
