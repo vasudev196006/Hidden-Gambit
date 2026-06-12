@@ -135,12 +135,7 @@ export function registerGameSocket(io: SocketServer): void {
       }
 
       const saved = await saveGame(game);
-      io.to(gameId).emit("gameState", buildGameState(saved, playerId));
-      io.to(gameId).emit("gameStateForOpponent", buildGameState(saved,
-        isWhite ? game.blackPlayerId ?? undefined : game.whitePlayerId
-      ));
-
-      // Broadcast to all in room with correct per-player state
+      // Always broadcast with each socket's own playerId so myColor is never wrong
       const sockets = await io.in(gameId).fetchSockets();
       for (const s of sockets) {
         s.emit("gameState", buildGameState(saved, s.data.playerId));
