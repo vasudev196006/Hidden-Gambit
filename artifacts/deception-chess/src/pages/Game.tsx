@@ -296,6 +296,18 @@ export default function Game() {
     };
   }
 
+  // Last move highlight (subtle amber tint)
+  if (lastMove && impostorPhase === "idle" && !investigateMode) {
+    customSquareStyles[lastMove.from] = {
+      ...customSquareStyles[lastMove.from],
+      backgroundColor: "rgba(234, 179, 8, 0.15)",
+    };
+    customSquareStyles[lastMove.to] = {
+      ...customSquareStyles[lastMove.to],
+      backgroundColor: "rgba(234, 179, 8, 0.25)",
+    };
+  }
+
   // Investigate mode — highlight own pawn rank (the rank the opponent chose their impostor from)
   if (investigateMode && gameState.myColor) {
     // White investigates rank 2 (their own pawns that black may control)
@@ -334,8 +346,19 @@ export default function Game() {
             <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex flex-col items-center justify-center z-10 rounded-xl text-center p-6">
               <Loader2 className="h-10 w-10 text-primary animate-spin mb-4" />
               <h2 className="text-2xl font-mono font-bold mb-2">Awaiting Operative</h2>
-              <p className="text-muted-foreground text-sm">Share the briefing code to challenge an opponent.</p>
-              <p className="mt-3 font-mono text-lg font-bold text-primary tracking-widest">{id}</p>
+              <p className="text-muted-foreground text-sm mb-3">Share this link with your opponent.</p>
+              <p className="font-mono text-xl font-bold text-primary tracking-widest mb-4">{id}</p>
+              <Button
+                variant="outline"
+                size="sm"
+                className="font-mono gap-2"
+                onClick={() => {
+                  navigator.clipboard.writeText(window.location.href);
+                  toast({ title: "Link copied!", description: "Send it to your opponent." });
+                }}
+              >
+                <Copy className="h-3.5 w-3.5" /> Copy invite link
+              </Button>
             </div>
           )}
 
@@ -443,12 +466,19 @@ export default function Game() {
 
             {gameState.status === "active" && (
               <div
-                className={`p-2 rounded-lg text-sm font-mono text-center border ${
-                  isMyTurn ? "border-primary/60 bg-primary/10 text-primary" : "border-border bg-background text-muted-foreground"
+                className={`p-2 rounded-lg text-sm font-mono text-center border flex items-center justify-center gap-2 ${
+                  kingInCheck
+                    ? "border-red-500/80 bg-red-500/10 text-red-400"
+                    : isMyTurn
+                    ? "border-primary/60 bg-primary/10 text-primary"
+                    : "border-border bg-background text-muted-foreground"
                 }`}
                 data-testid="turn-indicator"
               >
-                {isMyTurn
+                {kingInCheck && <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />}
+                {kingInCheck
+                  ? `${gameState.turn === "white" ? gameState.whitePlayerName : gameState.blackPlayerName} in check!`
+                  : isMyTurn
                   ? "Your turn"
                   : `${gameState.turn === "white" ? gameState.whitePlayerName : gameState.blackPlayerName}'s turn`}
               </div>
