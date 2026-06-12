@@ -4,13 +4,14 @@ import { useGetGame, useSetImpostor, getGetGameQueryKey } from "@workspace/api-c
 import type { GameState } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { socket } from "@/lib/socket";
+import { Chess } from "chess.js";
 import { Chessboard } from "react-chessboard";
 import type { PieceDropHandlerArgs } from "react-chessboard";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import {
   Loader2, AlertTriangle, Shield, Swords, ArrowLeft,
-  Zap, Search, ChevronRight, X,
+  Zap, Search, ChevronRight, X, Copy, CheckCircle2,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -66,6 +67,9 @@ export default function Game() {
   // Click-to-move state
   const [selectedSquare, setSelectedSquare] = useState<string | null>(null);
 
+  // Last move highlight
+  const [lastMove, setLastMove] = useState<{ from: string; to: string } | null>(null);
+
   const { data: initialData, isLoading } = useGetGame(id!, {
     query: { enabled: !!id, queryKey: getGetGameQueryKey(id!) },
   });
@@ -80,10 +84,12 @@ export default function Game() {
     socket.connect();
     socket.emit("joinRoom", { gameId: id, playerId: stored });
 
-    socket.on("gameState", (state: GameState) => {
+    socket.on("gameState", (state: GameState & { lastMoveFrom?: string; lastMoveTo?: string }) => {
       setGameState(state);
       queryClient.invalidateQueries({ queryKey: getGetGameQueryKey(id) });
-      // Reset interaction modes on state update
+      if (state.lastMoveFrom && state.lastMoveTo) {
+        setLastMove({ from: state.lastMoveFrom, to: state.lastMoveTo });
+      }
       setImpostorPhase("idle");
       setImpostorMoveType(null);
       setImpostorTargets([]);
@@ -230,6 +236,10 @@ export default function Game() {
     isMyTurn &&
     gameState.status === "active" &&
     !!(gameState.myColor === "white" ? !gameState.whiteInvestigationUsed : !gameState.blackInvestigationUsed);
+
+  // Check detection (client-side, no extra round-trip)
+  const chessInstance = gameState ? new Chess(gameState.fen) : null;
+  const kingInCheck = chessInstance?.isCheck() ?? false;
 
   // Build custom square styles
   const customSquareStyles: Record<string, React.CSSProperties> = {};

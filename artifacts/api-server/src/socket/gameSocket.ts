@@ -18,6 +18,9 @@ export function buildGameState(game: any, requestingPlayerId?: string) {
   const isBlack = requestingPlayerId === game.blackPlayerId;
   const myColor = isWhite ? "white" : isBlack ? "black" : null;
 
+  const history = (game.moveHistory as any[]) ?? [];
+  const lastEntry = history[history.length - 1];
+
   return {
     id: game.id,
     status: game.status,
@@ -40,6 +43,8 @@ export function buildGameState(game: any, requestingPlayerId?: string) {
     lastEvent: game.lastEvent ?? null,
     winner: game.winner ?? null,
     moveCount: game.moveCount,
+    lastMoveFrom: lastEntry?.from ?? null,
+    lastMoveTo: lastEntry?.to ?? null,
   };
 }
 
@@ -226,8 +231,9 @@ export function registerGameSocket(io: SocketServer): void {
       const isBlack = playerId === game.blackPlayerId;
       if (!isWhite && !isBlack) { socket.emit("moveError", { message: "Not a player in this game" }); return; }
 
-      // Can only investigate on your own turn (as a special action, no move consumed)
-      // Check investigation not already used
+      const playerColor = isWhite ? "white" : "black";
+      if (game.turn !== playerColor) { socket.emit("moveError", { message: "Not your turn" }); return; }
+
       if (isWhite && game.whiteInvestigationUsed) { socket.emit("moveError", { message: "Investigation already used" }); return; }
       if (isBlack && game.blackInvestigationUsed) { socket.emit("moveError", { message: "Investigation already used" }); return; }
 
