@@ -362,16 +362,15 @@ export default function Game() {
             </div>
           )}
 
-          {/* Impostor selection overlay */}
+          {/* Impostor selection banner — does NOT block the board */}
           {gameState.status === "selecting" && isPlayer && (
-            <div className="absolute inset-0 bg-background/75 backdrop-blur-sm flex flex-col items-center justify-center z-10 rounded-xl text-center p-6 border border-primary/40">
-              <Shield className="h-10 w-10 text-primary mb-3" />
-              <h2 className="text-xl font-mono font-bold mb-2">Phase 1: Infiltration</h2>
+            <div className="absolute bottom-0 left-0 right-0 z-10 rounded-b-xl border-t border-primary/50 bg-background/95 px-4 py-3 flex items-center gap-3">
+              <Shield className="h-4 w-4 text-primary shrink-0" />
               {gameState.myImpostorSquare ? (
-                <p className="text-muted-foreground text-sm">Impostor placed. Awaiting opponent...</p>
+                <p className="text-sm font-mono text-muted-foreground">Impostor placed — awaiting opponent...</p>
               ) : (
-                <p className="text-muted-foreground text-sm max-w-xs">
-                  Click one of the highlighted enemy flank pawns (a, b, c, f, g, h) to plant your sleeper agent.
+                <p className="text-sm font-mono text-primary">
+                  Click a glowing red pawn (a, b, c, f, g, h file) to plant your sleeper agent.
                 </p>
               )}
             </div>
