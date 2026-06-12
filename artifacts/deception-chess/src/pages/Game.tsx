@@ -368,7 +368,7 @@ export default function Game() {
                 size="sm"
                 className="font-mono gap-2"
                 onClick={() => {
-                  navigator.clipboard.writeText(window.location.href);
+                  navigator.clipboard.writeText(`${window.location.origin}${import.meta.env.BASE_URL}join/${id}`);
                   toast({ title: "Link copied!", description: "Send it to your opponent." });
                 }}
               >
