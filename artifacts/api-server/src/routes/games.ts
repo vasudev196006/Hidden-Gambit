@@ -83,7 +83,12 @@ router.get("/games/:id", async (req, res): Promise<void> => {
     return;
   }
 
-  res.json(buildGameState(game));
+  // Accept optional ?playerId query param so the REST response includes myColor
+  const requestingPlayerId = typeof req.query["playerId"] === "string"
+    ? req.query["playerId"]
+    : undefined;
+
+  res.json(buildGameState(game, requestingPlayerId));
 });
 
 router.post("/games/:id/join", async (req, res): Promise<void> => {

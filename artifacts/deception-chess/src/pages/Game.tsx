@@ -1,8 +1,8 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams, useLocation } from "wouter";
-import { useGetGame, useSetImpostor, getGetGameQueryKey } from "@workspace/api-client-react";
+import { useSetImpostor } from "@workspace/api-client-react";
 import type { GameState } from "@workspace/api-client-react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { socket } from "@/lib/socket";
 import { Chess } from "chess.js";
 import { Chessboard } from "react-chessboard";
@@ -70,15 +70,25 @@ export default function Game() {
   // Last move highlight
   const [lastMove, setLastMove] = useState<{ from: string; to: string } | null>(null);
 
-  const { data: initialData, isLoading } = useGetGame(id!, {
-    query: {
-      enabled: !!id,
-      queryKey: getGetGameQueryKey(id!),
-      refetchInterval: (query) => {
-        const status = (query.state.data as any)?.status;
-        // Poll every 2s while waiting/selecting; stop once active or finished
-        return status === "waiting" || status === "selecting" ? 2000 : false;
-      },
+  // Read playerId from localStorage early so the query can use it
+  const storedPlayerId = id ? (localStorage.getItem(`game_${id}_player`) ?? undefined) : undefined;
+
+  const GAME_QUERY_KEY = ["game", id, storedPlayerId];
+
+  const { data: initialData, isLoading } = useQuery<GameState>({
+    queryKey: GAME_QUERY_KEY,
+    queryFn: async () => {
+      const url = storedPlayerId
+        ? `/api/games/${id}?playerId=${storedPlayerId}`
+        : `/api/games/${id}`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error("Failed to fetch game");
+      return res.json();
+    },
+    enabled: !!id,
+    refetchInterval: (query) => {
+      const status = query.state.data?.status;
+      return status === "waiting" || status === "selecting" ? 2000 : false;
     },
   });
 
@@ -86,7 +96,7 @@ export default function Game() {
 
   useEffect(() => {
     if (!id) return;
-    const stored = localStorage.getItem(`game_${id}_player`);
+    const stored = localStorage.getItem(`game_${id}_player`) ?? null;
     setPlayerId(stored);
 
     socket.connect();
@@ -94,7 +104,7 @@ export default function Game() {
 
     socket.on("gameState", (state: GameState & { lastMoveFrom?: string; lastMoveTo?: string }) => {
       setGameState(state);
-      queryClient.invalidateQueries({ queryKey: getGetGameQueryKey(id) });
+      queryClient.invalidateQueries({ queryKey: GAME_QUERY_KEY });
       if (state.lastMoveFrom && state.lastMoveTo) {
         setLastMove({ from: state.lastMoveFrom, to: state.lastMoveTo });
       }
@@ -114,15 +124,20 @@ export default function Game() {
       socket.off("moveError");
       socket.disconnect();
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, toast, queryClient]);
 
   useEffect(() => {
     if (!initialData) return;
-    // On first load, always apply. During waiting/selecting, keep polling data fresh
-    // so Player 1 sees Player 2 join even if a socket broadcast was missed.
     setGameState((prev) => {
       if (!prev) return initialData;
-      if (prev.status === "waiting" || prev.status === "selecting") return initialData;
+      if (prev.status === "waiting" || prev.status === "selecting") {
+        // Never overwrite a known myColor with null from a stale REST response
+        if (prev.myColor && !initialData.myColor) {
+          return { ...initialData, myColor: prev.myColor, myImpostorSquare: prev.myImpostorSquare };
+        }
+        return initialData;
+      }
       return prev; // active/finished: socket is source of truth
     });
   }, [initialData]);
