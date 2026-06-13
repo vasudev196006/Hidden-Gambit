@@ -70,8 +70,8 @@ export default function Game() {
   // Last move highlight
   const [lastMove, setLastMove] = useState<{ from: string; to: string } | null>(null);
 
-  // Read playerId from localStorage early so the query can use it
-  const storedPlayerId = id ? (localStorage.getItem(`game_${id}_player`) ?? undefined) : undefined;
+  // Read playerId — sessionStorage is per-tab (no cross-tab collision)
+  const storedPlayerId = id ? (sessionStorage.getItem(`game_${id}_player`) ?? undefined) : undefined;
 
   const GAME_QUERY_KEY = ["game", id, storedPlayerId];
 
@@ -96,7 +96,7 @@ export default function Game() {
 
   useEffect(() => {
     if (!id) return;
-    const stored = localStorage.getItem(`game_${id}_player`) ?? null;
+    const stored = sessionStorage.getItem(`game_${id}_player`) ?? null;
     setPlayerId(stored);
 
     socket.connect();

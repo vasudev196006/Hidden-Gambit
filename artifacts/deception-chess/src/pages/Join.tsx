@@ -25,8 +25,8 @@ export default function Join() {
       { id, data: { playerName } },
       {
         onSuccess: (res) => {
-          localStorage.setItem(`game_${res.gameId}_player`, res.playerId);
-          localStorage.setItem(`game_${res.gameId}_color`, res.color);
+          sessionStorage.setItem(`game_${res.gameId}_player`, res.playerId);
+          sessionStorage.setItem(`game_${res.gameId}_color`, res.color);
           setLocation(`/game/${res.gameId}`);
         },
         onError: (err: any) => {

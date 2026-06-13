@@ -27,6 +27,9 @@ const io = new SocketServer(httpServer, {
 
 registerGameSocket(io);
 
+// Expose io to route handlers via app.locals
+app.locals["io"] = io;
+
 httpServer.listen(port, () => {
   logger.info({ port }, "Server listening");
 });

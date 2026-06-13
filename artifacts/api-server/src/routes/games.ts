@@ -1,4 +1,5 @@
 import { Router, type IRouter } from "express";
+import type { Server as SocketServer } from "socket.io";
 import { db, gamesTable } from "@workspace/db";
 import { eq, or } from "drizzle-orm";
 import {
@@ -198,6 +199,16 @@ router.post("/games/:id/impostor", async (req, res): Promise<void> => {
   const saved = await saveGame(game);
 
   req.log.info({ gameId: game.id, playerId, pawnSquare, bothReady }, "Impostor selected");
+
+  // Emit personalized game state to every socket in the room so both players
+  // immediately see the transition (selecting → active) without waiting for a poll
+  const io = req.app.locals["io"] as SocketServer | undefined;
+  if (io) {
+    const roomSockets = await io.in(game.id).fetchSockets();
+    for (const s of roomSockets) {
+      s.emit("gameState", buildGameState(saved, s.data.playerId));
+    }
+  }
 
   res.json({ success: true, bothReady });
 });
