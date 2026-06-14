@@ -103,6 +103,18 @@ export const GameStateWinner = {
   draw: 'draw',
 } as const;
 
+/**
+ * The color of the player being penalized (null if none)
+ * @nullable
+ */
+export type GameStatePenaltyTargetColor = typeof GameStatePenaltyTargetColor[keyof typeof GameStatePenaltyTargetColor] | null;
+
+
+export const GameStatePenaltyTargetColor = {
+  white: 'white',
+  black: 'black',
+} as const;
+
 export interface GameState {
   id: string;
   status: GameStateStatus;
@@ -147,6 +159,11 @@ export interface GameState {
   lastEvent?: string | null;
   /** @nullable */
   winner?: GameStateWinner;
+  /**
+     * The color of the player being penalized (null if none)
+     * @nullable
+     */
+  penaltyTargetColor?: GameStatePenaltyTargetColor;
   moveCount: number;
 }
 

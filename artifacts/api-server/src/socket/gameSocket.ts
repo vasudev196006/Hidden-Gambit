@@ -4,6 +4,8 @@ import {
   applyStandardMove,
   applyImpostorMove,
   applyInvestigationPenalty,
+  removePieceOfType,
+  hasKnightOrBishop,
   checkGameOver,
   isValidImpostorMove,
   trackImpostorPawn,
@@ -42,6 +44,7 @@ export function buildGameState(game: any, requestingPlayerId?: string) {
     securedSquares: game.securedSquares ?? [],
     lastEvent: game.lastEvent ?? null,
     winner: game.winner ?? null,
+    penaltyTargetColor: game.penaltyTargetColor ?? null,
     moveCount: game.moveCount,
     lastMoveFrom: lastEntry?.from ?? null,
     lastMoveTo: lastEntry?.to ?? null,
@@ -87,6 +90,7 @@ export function registerGameSocket(io: SocketServer): void {
       const game = await getGame(gameId);
       if (!game) { socket.emit("moveError", { message: "Game not found" }); return; }
       if (game.status !== "active") { socket.emit("moveError", { message: "Game is not active" }); return; }
+      if (game.penaltyTargetColor) { socket.emit("moveError", { message: "Cannot move: penalty choice is pending" }); return; }
 
       const isWhite = playerId === game.whitePlayerId;
       const isBlack = playerId === game.blackPlayerId;
@@ -158,6 +162,7 @@ export function registerGameSocket(io: SocketServer): void {
       const game = await getGame(gameId);
       if (!game) { socket.emit("moveError", { message: "Game not found" }); return; }
       if (game.status !== "active") { socket.emit("moveError", { message: "Game is not active" }); return; }
+      if (game.penaltyTargetColor) { socket.emit("moveError", { message: "Cannot activate impostor: penalty choice is pending" }); return; }
 
       const isWhite = playerId === game.whitePlayerId;
       const isBlack = playerId === game.blackPlayerId;
@@ -227,6 +232,7 @@ export function registerGameSocket(io: SocketServer): void {
       const game = await getGame(gameId);
       if (!game) { socket.emit("moveError", { message: "Game not found" }); return; }
       if (game.status !== "active") { socket.emit("moveError", { message: "Game is not active" }); return; }
+      if (game.penaltyTargetColor) { socket.emit("moveError", { message: "Cannot investigate: penalty choice is pending" }); return; }
 
       const isWhite = playerId === game.whitePlayerId;
       const isBlack = playerId === game.blackPlayerId;
@@ -260,14 +266,77 @@ export function registerGameSocket(io: SocketServer): void {
         if (isWhite) game.blackImpostorRevealed = suspectSquare;
         else game.whiteImpostorRevealed = suspectSquare;
       } else {
-        // WRONG investigation — penalty: lose 1 knight + 1 bishop
+        // WRONG investigation — check if they have pieces to lose
         const playerColor = isWhite ? "white" : "black";
-        const newFen = applyInvestigationPenalty(game.fen, playerColor);
-        game.fen = newFen;
-        game.lastEvent = isWhite
-          ? `White wrongly investigated ${suspectSquare}. White loses a knight and a bishop!`
-          : `Black wrongly investigated ${suspectSquare}. Black loses a knight and a bishop!`;
+        const targetName = isWhite ? game.whitePlayerName : (game.blackPlayerName ?? "Black");
+        const opponentName = isWhite ? (game.blackPlayerName ?? "Black") : game.whitePlayerName;
+
+        const pieces = hasKnightOrBishop(game.fen, playerColor);
+        if (!pieces.knight && !pieces.bishop) {
+          game.lastEvent = `${targetName} wrongly investigated ${suspectSquare}, but has no knight or bishop to lose!`;
+        } else {
+          game.penaltyTargetColor = playerColor;
+          game.lastEvent = `${targetName} wrongly investigated ${suspectSquare}. ${opponentName} must choose a piece to remove!`;
+        }
       }
+
+      const saved = await saveGame(game);
+      const sockets = await io.in(gameId).fetchSockets();
+      for (const s of sockets) {
+        s.emit("gameState", buildGameState(saved, s.data.playerId));
+      }
+    });
+
+    socket.on("selectPenalty", async ({
+      gameId,
+      playerId,
+      penaltyChoice,
+    }: {
+      gameId: string;
+      playerId: string;
+      penaltyChoice: "knight" | "bishop";
+    }) => {
+      const game = await getGame(gameId);
+      if (!game) { socket.emit("moveError", { message: "Game not found" }); return; }
+      if (game.status !== "active") { socket.emit("moveError", { message: "Game is not active" }); return; }
+      if (!game.penaltyTargetColor) { socket.emit("moveError", { message: "No penalty choice is pending" }); return; }
+
+      const isWhite = playerId === game.whitePlayerId;
+      const isBlack = playerId === game.blackPlayerId;
+      if (!isWhite && !isBlack) { socket.emit("moveError", { message: "Not a player in this game" }); return; }
+
+      const playerColor = isWhite ? "white" : "black";
+      const choosingColor = game.penaltyTargetColor === "white" ? "black" : "white";
+      if (playerColor !== choosingColor) {
+        socket.emit("moveError", { message: "Not your turn to choose penalty" });
+        return;
+      }
+
+      if (penaltyChoice !== "knight" && penaltyChoice !== "bishop") {
+        socket.emit("moveError", { message: "Invalid penalty choice" });
+        return;
+      }
+
+      const penalizedColor = game.penaltyTargetColor as "white" | "black";
+      const pieces = hasKnightOrBishop(game.fen, penalizedColor);
+      if (penaltyChoice === "knight" && !pieces.knight) {
+        socket.emit("moveError", { message: "Opponent has no knights" });
+        return;
+      }
+      if (penaltyChoice === "bishop" && !pieces.bishop) {
+        socket.emit("moveError", { message: "Opponent has no bishops" });
+        return;
+      }
+
+      const pieceType = penaltyChoice === "knight" ? "n" : "b";
+      const newFen = removePieceOfType(game.fen, penalizedColor, pieceType);
+      game.fen = newFen;
+
+      const penalizedName = penalizedColor === "white" ? game.whitePlayerName : (game.blackPlayerName ?? "Black");
+      const choosingName = playerColor === "white" ? game.whitePlayerName : (game.blackPlayerName ?? "Black");
+
+      game.penaltyTargetColor = null;
+      game.lastEvent = `${choosingName} removed ${penalizedName}'s ${penaltyChoice}!`;
 
       const saved = await saveGame(game);
       const sockets = await io.in(gameId).fetchSockets();

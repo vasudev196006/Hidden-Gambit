@@ -131,6 +131,39 @@ export function applyInvestigationPenalty(fen: string, penalizedColor: Color): s
   return chess.fen();
 }
 
+export function removePieceOfType(fen: string, penalizedColor: Color, pieceType: "n" | "b"): string {
+  const chess = new Chess(fen);
+  const chessColor = penalizedColor === "white" ? "w" : "b";
+
+  for (const square of getAllSquares()) {
+    const piece = chess.get(square as any);
+    if (!piece || piece.color !== chessColor) continue;
+    if (piece.type === pieceType) {
+      chess.remove(square as any);
+      break;
+    }
+  }
+
+  return chess.fen();
+}
+
+export function hasKnightOrBishop(fen: string, penalizedColor: Color): { knight: boolean; bishop: boolean } {
+  const chess = new Chess(fen);
+  const chessColor = penalizedColor === "white" ? "w" : "b";
+  let knight = false;
+  let bishop = false;
+
+  for (const square of getAllSquares()) {
+    const piece = chess.get(square as any);
+    if (piece && piece.color === chessColor) {
+      if (piece.type === "n") knight = true;
+      if (piece.type === "b") bishop = true;
+    }
+  }
+
+  return { knight, bishop };
+}
+
 export function isSecuredPawnAttacked(
   fen: string,
   move: { from: string; to: string },

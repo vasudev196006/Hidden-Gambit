@@ -162,7 +162,7 @@ export default function Game() {
   }, [playerId, id, setImpostor, toast]);
 
   const handleBoardClick = useCallback((square: string) => {
-    if (!gameState || !playerId) return;
+    if (!gameState || !playerId || gameState.penaltyTargetColor) return;
 
     // Impostor destination selection
     if (impostorPhase === "pickDestination" && impostorMoveType && gameState.myImpostorSquare) {
@@ -219,7 +219,7 @@ export default function Game() {
   }, [gameState, playerId, impostorPhase, impostorMoveType, impostorTargets, investigateMode, selectedSquare, id, handleSelectImpostor]);
 
   const onDrop = useCallback(({ sourceSquare, targetSquare }: PieceDropHandlerArgs) => {
-    if (!gameState || gameState.status !== "active" || gameState.turn !== gameState.myColor) return false;
+    if (!gameState || gameState.status !== "active" || gameState.turn !== gameState.myColor || gameState.penaltyTargetColor) return false;
     socket.emit("makeMove", { gameId: id, playerId, from: sourceSquare, to: targetSquare, promotion: "q" });
     return true;
   }, [gameState, id, playerId]);
@@ -243,6 +243,10 @@ export default function Game() {
     setInvestigateDialogOpen(false);
     setInvestigateTarget(null);
   };
+  const handleSelectPenalty = useCallback((choice: "knight" | "bishop") => {
+    if (!id || !playerId) return;
+    socket.emit("selectPenalty", { gameId: id, playerId, penaltyChoice: choice });
+  }, [id, playerId]);
   const resign = () => {
     if (playerId) socket.emit("resign", { gameId: id, playerId });
   };
@@ -256,15 +260,43 @@ export default function Game() {
   }
 
   const isPlayer = !!gameState.myColor;
+
+  const isPenaltyPending = !!gameState.penaltyTargetColor;
+  const isChoosingPenalty = isPenaltyPending && gameState.myColor === (gameState.penaltyTargetColor === "white" ? "black" : "white");
+  const isPenalizedPlayer = isPenaltyPending && gameState.myColor === gameState.penaltyTargetColor;
+
+  const penalizedColor = gameState.penaltyTargetColor;
+  let opponentHasKnight = false;
+  let opponentHasBishop = false;
+
+  if (penalizedColor) {
+    const chess = new Chess(gameState.fen);
+    const targetChessColor = penalizedColor === "white" ? "w" : "b";
+
+    // Count pieces
+    for (let r = 0; r < 8; r++) {
+      for (let c = 0; c < 8; c++) {
+        const square = FILES[c] + RANKS[r];
+        const piece = chess.get(square as any);
+        if (piece && piece.color === targetChessColor) {
+          if (piece.type === "n") opponentHasKnight = true;
+          if (piece.type === "b") opponentHasBishop = true;
+        }
+      }
+    }
+  }
+
   const isMyTurn = gameState.turn === gameState.myColor;
   const impostorAvailable =
     isMyTurn &&
     gameState.status === "active" &&
+    !isPenaltyPending &&
     !!(gameState.myColor === "white" ? !gameState.whiteImpostorUsed : !gameState.blackImpostorUsed) &&
     !!gameState.myImpostorSquare;
   const investigateAvailable =
     isMyTurn &&
     gameState.status === "active" &&
+    !isPenaltyPending &&
     !!(gameState.myColor === "white" ? !gameState.whiteInvestigationUsed : !gameState.blackInvestigationUsed);
 
   // Check detection (client-side, no extra round-trip)
@@ -367,7 +399,7 @@ export default function Game() {
               squareStyles: customSquareStyles,
               darkSquareStyle: { backgroundColor: "#3d2b1f" },
               lightSquareStyle: { backgroundColor: "#7d5c45" },
-              allowDragging: isMyTurn && gameState.status === "active" && impostorPhase === "idle" && !investigateMode
+              allowDragging: isMyTurn && gameState.status === "active" && impostorPhase === "idle" && !investigateMode && !isPenaltyPending
             }}
           />
 
@@ -603,7 +635,7 @@ export default function Game() {
 
               {investigateMode && (
                 <p className="text-xs text-muted-foreground text-center font-mono">
-                  Click one of your own highlighted pawns you think the opponent secretly controls. Wrong guess costs a knight and a bishop.
+                  Click one of your own highlighted pawns you think the opponent secretly controls. Wrong guess allows opponent to remove a knight or bishop.
                 </p>
               )}
 
@@ -629,7 +661,7 @@ export default function Game() {
               <AlertTriangle className="h-5 w-5" /> Investigate {investigateTarget}?
             </DialogTitle>
             <DialogDescription className="text-muted-foreground text-sm leading-relaxed">
-              <strong>If wrong:</strong> you lose 1 knight and 1 bishop immediately. The real impostor stays hidden.
+              <strong>If wrong:</strong> your opponent chooses whether to remove one of your knights or bishops. The real impostor stays hidden.
               <br /><br />
               <strong>If correct:</strong> the impostor is neutralized and the pawn becomes secured — immune to knight and bishop captures.
             </DialogDescription>
@@ -649,6 +681,52 @@ export default function Game() {
               <ChevronRight className="mr-1 h-4 w-4" /> Confirm Investigation
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Choose Opponent Penalty Dialog */}
+      <Dialog open={isChoosingPenalty} onOpenChange={() => {}}>
+        <DialogContent className="bg-card border-border font-mono">
+          <DialogHeader>
+            <DialogTitle className="text-primary flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5" /> Choose Opponent's Penalty
+            </DialogTitle>
+            <DialogDescription className="text-muted-foreground text-sm leading-relaxed">
+              Your opponent wrongly investigated. Choose which piece of theirs you want to remove from the board:
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+            <Button
+              variant="destructive"
+              disabled={!opponentHasKnight}
+              onClick={() => handleSelectPenalty("knight")}
+              className="font-mono text-sm w-full sm:w-auto"
+            >
+              Remove Knight {!opponentHasKnight && "(Unavailable)"}
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={!opponentHasBishop}
+              onClick={() => handleSelectPenalty("bishop")}
+              className="font-mono text-sm w-full sm:w-auto"
+            >
+              Remove Bishop {!opponentHasBishop && "(Unavailable)"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Waiting for Penalty Choice Dialog */}
+      <Dialog open={isPenalizedPlayer} onOpenChange={() => {}}>
+        <DialogContent className="bg-card border-border font-mono">
+          <DialogHeader>
+            <DialogTitle className="text-primary flex items-center gap-2">
+              <Loader2 className="h-5 w-5 animate-spin" /> Penalty Choice Pending
+            </DialogTitle>
+            <DialogDescription className="text-muted-foreground text-sm leading-relaxed">
+              You wrongly accused/investigated. Awaiting opponent's choice on whether to remove your Knight or your Bishop...
+            </DialogDescription>
+          </DialogHeader>
         </DialogContent>
       </Dialog>
     </div>

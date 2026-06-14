@@ -322,6 +322,10 @@ components:
         winner:
           type: ["string", "null"]
           enum: [white, black, draw, null]
+        penaltyTargetColor:
+          type: ["string", "null"]
+          enum: [white, black, null]
+          description: "The color of the player being penalized (null if none)"
         moveCount:
           type: integer
       required:
