@@ -367,7 +367,7 @@ export default function Game() {
               squareStyles: customSquareStyles,
               darkSquareStyle: { backgroundColor: "#3d2b1f" },
               lightSquareStyle: { backgroundColor: "#7d5c45" },
-              allowDragging: isMyTurn && gameState.status === "active" && impostorPhase === "idle" && !investigateMode,
+              allowDragging: isMyTurn && gameState.status === "active" && impostorPhase === "idle" && !investigateMode
             }}
           />
 
