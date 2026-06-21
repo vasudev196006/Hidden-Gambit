@@ -1,3 +1,4 @@
+import "./loadEnv";
 import { createServer } from "http";
 import { Server as SocketServer } from "socket.io";
 import app from "./app";

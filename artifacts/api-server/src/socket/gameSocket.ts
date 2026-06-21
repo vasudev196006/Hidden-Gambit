@@ -9,9 +9,11 @@ import {
   checkGameOver,
   isValidImpostorMove,
   trackImpostorPawn,
+  trackSecuredPawns,
   isImpostorCaptured,
   isInCheck,
   getValidMoves,
+  switchFenTurn,
 } from "../lib/gameEngine";
 import { logger } from "../lib/logger";
 
@@ -89,26 +91,43 @@ export function registerGameSocket(io: SocketServer): void {
     }) => {
       const game = await getGame(gameId);
       if (!game) { socket.emit("moveError", { message: "Game not found" }); return; }
-      if (game.status !== "active") { socket.emit("moveError", { message: "Game is not active" }); return; }
-      if (game.penaltyTargetColor) { socket.emit("moveError", { message: "Cannot move: penalty choice is pending" }); return; }
+      if (game.status !== "active") {
+        socket.emit("moveError", { message: "Game is not active" });
+        socket.emit("gameState", buildGameState(game, playerId));
+        return;
+      }
+      if (game.penaltyTargetColor) {
+        socket.emit("moveError", { message: "Cannot move: penalty choice is pending" });
+        socket.emit("gameState", buildGameState(game, playerId));
+        return;
+      }
 
       const isWhite = playerId === game.whitePlayerId;
       const isBlack = playerId === game.blackPlayerId;
       if (!isWhite && !isBlack) { socket.emit("moveError", { message: "Not a player in this game" }); return; }
 
       const playerColor = isWhite ? "white" : "black";
-      if (game.turn !== playerColor) { socket.emit("moveError", { message: "Not your turn" }); return; }
+      if (game.turn !== playerColor) {
+        socket.emit("moveError", { message: "Not your turn" });
+        socket.emit("gameState", buildGameState(game, playerId));
+        return;
+      }
 
       // Apply standard chess move with secured pawn protection
       const result = applyStandardMove(game.fen, from, to, promotion, game.securedSquares);
-      if (result.error) { socket.emit("moveError", { message: result.error }); return; }
+      if (result.error) {
+        socket.emit("moveError", { message: result.error });
+        socket.emit("gameState", buildGameState(game, playerId));
+        return;
+      }
 
       game.fen = result.newFen;
       game.turn = game.turn === "white" ? "black" : "white";
       game.moveCount += 1;
-      game.lastEvent = null;
+      const promotionSuffix = result.promotion && promotion ? ` (promoted to ${promotion === "q" ? "queen" : promotion === "r" ? "rook" : promotion === "b" ? "bishop" : "knight"})` : "";
+      game.lastEvent = `${playerColor === "white" ? "White" : "Black"} moved from ${from} to ${to}${promotionSuffix}`;
       const history = (game.moveHistory as any[]) ?? [];
-      history.push({ from, to, promotion, player: playerColor });
+      history.push({ from, to, promotion: result.promotion ? promotion : undefined, player: playerColor });
       game.moveHistory = history as any;
 
       // Track impostor pawn location after move
@@ -120,6 +139,13 @@ export function registerGameSocket(io: SocketServer): void {
       game.blackImpostorSquare = trackImpostorPawn(
         game.fen,
         game.blackImpostorSquare,
+        { from, to, promotion: !!result.promotion }
+      );
+
+      // Track secured pawn locations after move
+      game.securedSquares = trackSecuredPawns(
+        game.fen,
+        game.securedSquares || [],
         { from, to, promotion: !!result.promotion }
       );
 
@@ -161,34 +187,77 @@ export function registerGameSocket(io: SocketServer): void {
     }) => {
       const game = await getGame(gameId);
       if (!game) { socket.emit("moveError", { message: "Game not found" }); return; }
-      if (game.status !== "active") { socket.emit("moveError", { message: "Game is not active" }); return; }
-      if (game.penaltyTargetColor) { socket.emit("moveError", { message: "Cannot activate impostor: penalty choice is pending" }); return; }
+      if (game.status !== "active") {
+        socket.emit("moveError", { message: "Game is not active" });
+        socket.emit("gameState", buildGameState(game, playerId));
+        return;
+      }
+      if (game.penaltyTargetColor) {
+        socket.emit("moveError", { message: "Cannot activate impostor: penalty choice is pending" });
+        socket.emit("gameState", buildGameState(game, playerId));
+        return;
+      }
 
       const isWhite = playerId === game.whitePlayerId;
       const isBlack = playerId === game.blackPlayerId;
       if (!isWhite && !isBlack) { socket.emit("moveError", { message: "Not a player in this game" }); return; }
 
       const playerColor = isWhite ? "white" : "black";
-      if (game.turn !== playerColor) { socket.emit("moveError", { message: "Not your turn" }); return; }
+      if (game.turn !== playerColor) {
+        socket.emit("moveError", { message: "Not your turn" });
+        socket.emit("gameState", buildGameState(game, playerId));
+        return;
+      }
 
       // Check impostor hasn't been used
-      if (isWhite && game.whiteImpostorUsed) { socket.emit("moveError", { message: "Impostor already used" }); return; }
-      if (isBlack && game.blackImpostorUsed) { socket.emit("moveError", { message: "Impostor already used" }); return; }
+      if (isWhite && game.whiteImpostorUsed) {
+        socket.emit("moveError", { message: "Impostor already used" });
+        socket.emit("gameState", buildGameState(game, playerId));
+        return;
+      }
+      if (isBlack && game.blackImpostorUsed) {
+        socket.emit("moveError", { message: "Impostor already used" });
+        socket.emit("gameState", buildGameState(game, playerId));
+        return;
+      }
 
       // Check impostor pawn still exists
       const impostorSquare = isWhite ? game.whiteImpostorSquare : game.blackImpostorSquare;
-      if (!impostorSquare) { socket.emit("moveError", { message: "Impostor pawn was captured" }); return; }
-      if (fromSquare !== impostorSquare) { socket.emit("moveError", { message: "Wrong pawn — not the impostor" }); return; }
+      if (!impostorSquare) {
+        const isRevealed = isWhite ? game.whiteImpostorRevealed : game.blackImpostorRevealed;
+        const errMsg = isRevealed
+          ? "Impostor pawn was neutralized by investigation"
+          : "Impostor pawn was captured";
+        socket.emit("moveError", { message: errMsg });
+        socket.emit("gameState", buildGameState(game, playerId));
+        return;
+      }
+      if (fromSquare !== impostorSquare) {
+        socket.emit("moveError", { message: "Wrong pawn — not the impostor" });
+        socket.emit("gameState", buildGameState(game, playerId));
+        return;
+      }
 
       // Validate the impostor move
-      const validation = isValidImpostorMove(fromSquare, toSquare, moveType, game.fen, playerColor);
-      if (!validation.valid) { socket.emit("moveError", { message: validation.error }); return; }
+      const validation = isValidImpostorMove(fromSquare, toSquare, moveType, game.fen, playerColor, game.securedSquares);
+      if (!validation.valid) {
+        socket.emit("moveError", { message: validation.error });
+        socket.emit("gameState", buildGameState(game, playerId));
+        return;
+      }
 
       // Apply impostor move
       const newFen = applyImpostorMove(game.fen, fromSquare, toSquare, playerColor);
       game.fen = newFen;
       game.turn = game.turn === "white" ? "black" : "white";
       game.moveCount += 1;
+
+      // Track secured pawn locations after impostor move
+      game.securedSquares = trackSecuredPawns(
+        game.fen,
+        game.securedSquares || [],
+        { from: fromSquare, to: toSquare, promotion: false }
+      );
 
       if (isWhite) {
         game.whiteImpostorUsed = true;
@@ -231,18 +300,38 @@ export function registerGameSocket(io: SocketServer): void {
     }) => {
       const game = await getGame(gameId);
       if (!game) { socket.emit("moveError", { message: "Game not found" }); return; }
-      if (game.status !== "active") { socket.emit("moveError", { message: "Game is not active" }); return; }
-      if (game.penaltyTargetColor) { socket.emit("moveError", { message: "Cannot investigate: penalty choice is pending" }); return; }
+      if (game.status !== "active") {
+        socket.emit("moveError", { message: "Game is not active" });
+        socket.emit("gameState", buildGameState(game, playerId));
+        return;
+      }
+      if (game.penaltyTargetColor) {
+        socket.emit("moveError", { message: "Cannot investigate: penalty choice is pending" });
+        socket.emit("gameState", buildGameState(game, playerId));
+        return;
+      }
 
       const isWhite = playerId === game.whitePlayerId;
       const isBlack = playerId === game.blackPlayerId;
       if (!isWhite && !isBlack) { socket.emit("moveError", { message: "Not a player in this game" }); return; }
 
       const playerColor = isWhite ? "white" : "black";
-      if (game.turn !== playerColor) { socket.emit("moveError", { message: "Not your turn" }); return; }
+      if (game.turn !== playerColor) {
+        socket.emit("moveError", { message: "Not your turn" });
+        socket.emit("gameState", buildGameState(game, playerId));
+        return;
+      }
 
-      if (isWhite && game.whiteInvestigationUsed) { socket.emit("moveError", { message: "Investigation already used" }); return; }
-      if (isBlack && game.blackInvestigationUsed) { socket.emit("moveError", { message: "Investigation already used" }); return; }
+      if (isWhite && game.whiteInvestigationUsed) {
+        socket.emit("moveError", { message: "Investigation already used" });
+        socket.emit("gameState", buildGameState(game, playerId));
+        return;
+      }
+      if (isBlack && game.blackInvestigationUsed) {
+        socket.emit("moveError", { message: "Investigation already used" });
+        socket.emit("gameState", buildGameState(game, playerId));
+        return;
+      }
 
       // Mark investigation as used
       if (isWhite) game.whiteInvestigationUsed = true;
@@ -262,21 +351,32 @@ export function registerGameSocket(io: SocketServer): void {
           ? `White correctly identified the impostor at ${suspectSquare}! That pawn is now secured.`
           : `Black correctly identified the impostor at ${suspectSquare}! That pawn is now secured.`;
 
-        // Reveal the impostor to everyone
-        if (isWhite) game.blackImpostorRevealed = suspectSquare;
-        else game.whiteImpostorRevealed = suspectSquare;
+        // Reveal the impostor to everyone and strip of impostor powers
+        if (isWhite) {
+          game.blackImpostorRevealed = suspectSquare;
+          game.blackImpostorSquare = null;
+        } else {
+          game.whiteImpostorRevealed = suspectSquare;
+          game.whiteImpostorSquare = null;
+        }
       } else {
         // WRONG investigation — check if they have pieces to lose
         const playerColor = isWhite ? "white" : "black";
+        const opponentColor = isWhite ? "black" : "white";
         const targetName = isWhite ? game.whitePlayerName : (game.blackPlayerName ?? "Black");
         const opponentName = isWhite ? (game.blackPlayerName ?? "Black") : game.whitePlayerName;
 
+        // Switch turn to the opponent on failed investigation
+        game.turn = opponentColor;
+        game.fen = switchFenTurn(game.fen, playerColor);
+        game.moveCount += 1;
+
         const pieces = hasKnightOrBishop(game.fen, playerColor);
         if (!pieces.knight && !pieces.bishop) {
-          game.lastEvent = `${targetName} wrongly investigated ${suspectSquare}, but has no knight or bishop to lose!`;
+          game.lastEvent = `${targetName} wrongly investigated ${suspectSquare}, but has no knight or bishop to lose! Turn passed to ${opponentName}.`;
         } else {
           game.penaltyTargetColor = playerColor;
-          game.lastEvent = `${targetName} wrongly investigated ${suspectSquare}. ${opponentName} must choose a piece to remove!`;
+          game.lastEvent = `${targetName} wrongly investigated ${suspectSquare}. Turn passed to ${opponentName}, who must choose a piece to remove!`;
         }
       }
 
@@ -290,16 +390,24 @@ export function registerGameSocket(io: SocketServer): void {
     socket.on("selectPenalty", async ({
       gameId,
       playerId,
-      penaltyChoice,
+      square,
     }: {
       gameId: string;
       playerId: string;
-      penaltyChoice: "knight" | "bishop";
+      square: string;
     }) => {
       const game = await getGame(gameId);
       if (!game) { socket.emit("moveError", { message: "Game not found" }); return; }
-      if (game.status !== "active") { socket.emit("moveError", { message: "Game is not active" }); return; }
-      if (!game.penaltyTargetColor) { socket.emit("moveError", { message: "No penalty choice is pending" }); return; }
+      if (game.status !== "active") {
+        socket.emit("moveError", { message: "Game is not active" });
+        socket.emit("gameState", buildGameState(game, playerId));
+        return;
+      }
+      if (!game.penaltyTargetColor) {
+        socket.emit("moveError", { message: "No penalty choice is pending" });
+        socket.emit("gameState", buildGameState(game, playerId));
+        return;
+      }
 
       const isWhite = playerId === game.whitePlayerId;
       const isBlack = playerId === game.blackPlayerId;
@@ -309,34 +417,32 @@ export function registerGameSocket(io: SocketServer): void {
       const choosingColor = game.penaltyTargetColor === "white" ? "black" : "white";
       if (playerColor !== choosingColor) {
         socket.emit("moveError", { message: "Not your turn to choose penalty" });
+        socket.emit("gameState", buildGameState(game, playerId));
         return;
       }
 
-      if (penaltyChoice !== "knight" && penaltyChoice !== "bishop") {
-        socket.emit("moveError", { message: "Invalid penalty choice" });
-        return;
-      }
-
+      const Chess = require("chess.js").Chess; // Import inside or rely on top level imports
+      const chess = new Chess(game.fen);
+      const piece = chess.get(square as any);
       const penalizedColor = game.penaltyTargetColor as "white" | "black";
-      const pieces = hasKnightOrBishop(game.fen, penalizedColor);
-      if (penaltyChoice === "knight" && !pieces.knight) {
-        socket.emit("moveError", { message: "Opponent has no knights" });
-        return;
-      }
-      if (penaltyChoice === "bishop" && !pieces.bishop) {
-        socket.emit("moveError", { message: "Opponent has no bishops" });
+      const targetChessColor = penalizedColor === "white" ? "w" : "b";
+
+      if (!piece || piece.color !== targetChessColor || (piece.type !== "n" && piece.type !== "b")) {
+        socket.emit("moveError", { message: "Invalid piece chosen for removal" });
         return;
       }
 
-      const pieceType = penaltyChoice === "knight" ? "n" : "b";
-      const newFen = removePieceOfType(game.fen, penalizedColor, pieceType);
-      game.fen = newFen;
+      const pieceType = piece.type;
+      const penaltyChoice = pieceType === "n" ? "knight" : "bishop";
+
+      chess.remove(square as any);
+      game.fen = chess.fen();
 
       const penalizedName = penalizedColor === "white" ? game.whitePlayerName : (game.blackPlayerName ?? "Black");
       const choosingName = playerColor === "white" ? game.whitePlayerName : (game.blackPlayerName ?? "Black");
 
       game.penaltyTargetColor = null;
-      game.lastEvent = `${choosingName} removed ${penalizedName}'s ${penaltyChoice}!`;
+      game.lastEvent = `${choosingName} removed ${penalizedName}'s ${penaltyChoice} on ${square}!`;
 
       const saved = await saveGame(game);
       const sockets = await io.in(gameId).fetchSockets();

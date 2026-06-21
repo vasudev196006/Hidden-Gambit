@@ -45,7 +45,7 @@ if ($LASTEXITCODE -ne 0) {
 # 2. Start API backend server in a new window
 Write-Host "`nStep 2: Starting API server (backend) in a new window on port 5000..." -ForegroundColor Cyan
 $apiCommand = "`$env:DATABASE_URL='$($env:DATABASE_URL)'; `$env:PORT='5000'; pnpm --filter @workspace/api-server run dev"
-Start-Process powershell -ArgumentList "-NoExit", "-Command", $apiCommand
+Start-Process powershell -WorkingDirectory $PSScriptRoot -ArgumentList "-NoExit", "-Command", $apiCommand
 
 # 3. Start Frontend dev server in the current window
 Write-Host "`nStep 3: Starting Vite dev server (frontend) in the current window on port 3000..." -ForegroundColor Cyan
