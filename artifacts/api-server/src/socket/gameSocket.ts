@@ -9,6 +9,7 @@ import {
   checkGameOver,
   isValidImpostorMove,
   trackImpostorPawn,
+  trackRevealedPiece,
   trackSecuredPawns,
   isImpostorCaptured,
   isInCheck,
@@ -157,6 +158,10 @@ export function registerGameSocket(io: SocketServer): void {
         game.blackImpostorSquare = null;
       }
 
+      // Track revealed impostor pieces (follow them as they move normally)
+      game.whiteImpostorRevealed = trackRevealedPiece(game.whiteImpostorRevealed, { from, to });
+      game.blackImpostorRevealed = trackRevealedPiece(game.blackImpostorRevealed, { from, to });
+
       // Check game over
       const gameOver = checkGameOver(game.fen);
       if (gameOver.over) {
@@ -246,8 +251,8 @@ export function registerGameSocket(io: SocketServer): void {
         return;
       }
 
-      // Apply impostor move
-      const newFen = applyImpostorMove(game.fen, fromSquare, toSquare, playerColor);
+      // Apply impostor move (pawn transforms into the piece type used)
+      const newFen = applyImpostorMove(game.fen, fromSquare, toSquare, playerColor, moveType);
       game.fen = newFen;
       game.turn = game.turn === "white" ? "black" : "white";
       game.moveCount += 1;
@@ -258,6 +263,10 @@ export function registerGameSocket(io: SocketServer): void {
         game.securedSquares || [],
         { from: fromSquare, to: toSquare, promotion: false }
       );
+
+      // Track revealed impostor pieces (in case this impostor captures the other's revealed piece)
+      game.whiteImpostorRevealed = trackRevealedPiece(game.whiteImpostorRevealed, { from: fromSquare, to: toSquare });
+      game.blackImpostorRevealed = trackRevealedPiece(game.blackImpostorRevealed, { from: fromSquare, to: toSquare });
 
       if (isWhite) {
         game.whiteImpostorUsed = true;
@@ -329,6 +338,13 @@ export function registerGameSocket(io: SocketServer): void {
       }
       if (isBlack && game.blackInvestigationUsed) {
         socket.emit("moveError", { message: "Investigation already used" });
+        socket.emit("gameState", buildGameState(game, playerId));
+        return;
+      }
+
+      const opponentImpostorUsed = isWhite ? game.blackImpostorUsed : game.whiteImpostorUsed;
+      if (opponentImpostorUsed) {
+        socket.emit("moveError", { message: "Cannot investigate: opponent's impostor has already been activated" });
         socket.emit("gameState", buildGameState(game, playerId));
         return;
       }

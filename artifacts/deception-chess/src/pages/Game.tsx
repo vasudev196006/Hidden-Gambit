@@ -53,21 +53,17 @@ function getImpostorTargets(
       [1, -2], [1, 2], [2, -1], [2, 1],
     ];
     for (const [df, dr] of knightDeltas) {
-      const targetRank = r + dr;
-      const isForward = myColor === "white" ? targetRank < r : targetRank > r;
-      if (!isForward) continue;
-
-      const sq = coordsToSquare(f + df, targetRank);
+      const sq = coordsToSquare(f + df, r + dr);
       if (sq) destinations.push(sq);
     }
   } else {
-    // Bishop move = slide diagonally in forward directions (like normal bishop but not backwards)
+    // Bishop move = slide diagonally in all 4 directions (standard bishop move)
     const chess = fen ? new Chess(fen) : null;
     const playerChessColor = myColor === "white" ? "w" : "b";
 
-    const directions = myColor === "white"
-      ? [[-1, -1], [1, -1]]
-      : [[-1, 1], [1, 1]];
+    const directions = [
+      [-1, -1], [-1, 1], [1, -1], [1, 1]
+    ];
 
     for (const [df, dr] of directions) {
       let step = 1;
@@ -351,7 +347,7 @@ export default function Game() {
     return true;
   }, [gameState, id, playerId, checkIsPromotion]);
 
-  const onPieceDrag = useCallback(({ square }: { piece: string; square: string; isSparePiece: boolean }) => {
+  const onPieceDrag = useCallback(({ square }: { piece: any; square: any; isSparePiece: boolean }) => {
     if (!gameState || gameState.status !== "active" || gameState.turn !== gameState.myColor) return;
     setDragSquare(square);
     setSelectedSquare(null);
@@ -447,10 +443,14 @@ export default function Game() {
     !!(gameState.myColor === "white" ? !gameState.whiteImpostorUsed : !gameState.blackImpostorUsed) &&
     !!gameState.myImpostorSquare &&
     !!hasImpostorLeftStartingRank;
+  const opponentImpostorUsed =
+    gameState.myColor === "white" ? gameState.blackImpostorUsed : gameState.whiteImpostorUsed;
+
   const investigateAvailable =
     isMyTurn &&
     gameState.status === "active" &&
     !isPenaltyPending &&
+    !opponentImpostorUsed &&
     !!(gameState.myColor === "white" ? !gameState.whiteInvestigationUsed : !gameState.blackInvestigationUsed);
 
   // Check detection (client-side, no extra round-trip)
@@ -600,6 +600,22 @@ export default function Game() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col md:flex-row p-4 gap-6" data-testid="game-page">
+      <style>{`
+        ${gameState.whiteImpostorRevealed ? `
+          [data-square="${gameState.whiteImpostorRevealed}"] img,
+          [data-square="${gameState.whiteImpostorRevealed}"] svg,
+          [data-square="${gameState.whiteImpostorRevealed}"] > div {
+            filter: drop-shadow(0 0 6px rgba(239, 68, 68, 0.95)) drop-shadow(0 0 2px rgba(239, 68, 68, 0.95)) !important;
+          }
+        ` : ""}
+        ${gameState.blackImpostorRevealed ? `
+          [data-square="${gameState.blackImpostorRevealed}"] img,
+          [data-square="${gameState.blackImpostorRevealed}"] svg,
+          [data-square="${gameState.blackImpostorRevealed}"] > div {
+            filter: drop-shadow(0 0 6px rgba(239, 68, 68, 0.95)) drop-shadow(0 0 2px rgba(239, 68, 68, 0.95)) !important;
+          }
+        ` : ""}
+      `}</style>
 
       {/* Board */}
       <div className="flex-1 flex flex-col items-center justify-center w-full">
@@ -877,8 +893,16 @@ export default function Game() {
               <span className="text-muted-foreground">Investigation</span>
               <span className="font-mono text-xs">
                 {gameState.myColor === "white"
-                  ? gameState.whiteInvestigationUsed ? <span className="text-muted-foreground">Used</span> : <span className="text-green-500">Available</span>
-                  : gameState.blackInvestigationUsed ? <span className="text-muted-foreground">Used</span> : <span className="text-green-500">Available</span>}
+                  ? gameState.whiteInvestigationUsed
+                    ? <span className="text-muted-foreground">Used</span>
+                    : opponentImpostorUsed
+                      ? <span className="text-muted-foreground">Unavailable</span>
+                      : <span className="text-green-500 font-bold">Available</span>
+                  : gameState.blackInvestigationUsed
+                    ? <span className="text-muted-foreground">Used</span>
+                    : opponentImpostorUsed
+                      ? <span className="text-muted-foreground">Unavailable</span>
+                      : <span className="text-green-500 font-bold">Available</span>}
               </span>
             </div>
             {gameState.securedSquares.length > 0 && (

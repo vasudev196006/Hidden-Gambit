@@ -1,5 +1,7 @@
 # start.ps1 - Starts the app without rebuilding (uses pre-built API dist)
-# Uses fnm to activate Node 22 which is compatible with pnpm 11
+
+# Auto-reload and append Node.js and pnpm paths for this execution session
+$env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User") + ";C:\Users\vasudev\AppData\Roaming\npm;C:\Program Files\nodejs"
 
 # Load env vars
 if (-not (Test-Path .env)) {
@@ -28,7 +30,7 @@ try {
 
 # Start API server in background window (using pre-built dist - no rebuild needed)
 Write-Host "`nStarting API server on port 5000 (using pre-built dist)..." -ForegroundColor Cyan
-$fnmSetup = '$env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User"); try { fnm env --use-on-cd --shell power-shell | Out-String | Invoke-Expression; fnm use 22 } catch {}'
+$fnmSetup = '$env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User") + ";C:\Users\vasudev\AppData\Roaming\npm;C:\Program Files\nodejs"; try { fnm env --use-on-cd --shell power-shell | Out-String | Invoke-Expression; fnm use 22 } catch {}'
 $apiCommand = "$fnmSetup; `$env:DATABASE_URL='$($env:DATABASE_URL)'; `$env:PORT='5000'; node --enable-source-maps ./artifacts/api-server/dist/index.mjs"
 Start-Process powershell -WorkingDirectory $PSScriptRoot -ArgumentList "-NoExit", "-Command", $apiCommand
 

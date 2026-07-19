@@ -1,5 +1,8 @@
 # Helper script to run local environment for Hidden Gambit chess game
 
+# Auto-reload and append Node.js and pnpm paths for this execution session
+$env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User") + ";C:\Users\vasudev\AppData\Roaming\npm;C:\Program Files\nodejs"
+
 if (-not (Test-Path .env)) {
     Write-Host "----------------------------------------------------------------------" -ForegroundColor Red
     Write-Host "Error: .env file not found!" -ForegroundColor Red
@@ -44,7 +47,7 @@ if ($LASTEXITCODE -ne 0) {
 
 # 2. Start API backend server in a new window
 Write-Host "`nStep 2: Starting API server (backend) in a new window on port 5000..." -ForegroundColor Cyan
-$apiCommand = "`$env:DATABASE_URL='$($env:DATABASE_URL)'; `$env:PORT='5000'; pnpm --filter @workspace/api-server run dev"
+$apiCommand = "`$env:Path = [System.Environment]::GetEnvironmentVariable('Path','Machine') + ';' + [System.Environment]::GetEnvironmentVariable('Path','User') + ';C:\Users\vasudev\AppData\Roaming\npm;C:\Program Files\nodejs'; `$env:DATABASE_URL='$($env:DATABASE_URL)'; `$env:PORT='5000'; pnpm --filter @workspace/api-server run dev"
 Start-Process powershell -WorkingDirectory $PSScriptRoot -ArgumentList "-NoExit", "-Command", $apiCommand
 
 # 3. Start Frontend dev server in the current window

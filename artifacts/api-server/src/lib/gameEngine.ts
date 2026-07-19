@@ -33,23 +33,17 @@ export function getImpostorMoves(
       [1, -2], [1, 2], [2, -1], [2, 1],
     ];
     for (const [df, dr] of knightDeltas) {
-      const targetRank = rank + dr;
-      const isForward = impostorColor === "white" ? targetRank < rank : targetRank > rank;
-      if (!isForward) continue;
-
-      const sq = coordsToSquare(file + df, targetRank);
+      const sq = coordsToSquare(file + df, rank + dr);
       if (sq) destinations.push(sq);
     }
   } else {
-    // Bishop move = slide diagonally in forward directions (like normal bishop but not backwards)
+    // Bishop move = slide diagonally in all 4 directions (standard bishop move)
     const chess = fen ? new Chess(fen) : null;
     const playerChessColor = impostorColor === "white" ? "w" : "b";
 
-    // White's impostor (Black pawn) moves down: [-1, -1] and [1, -1]
-    // Black's impostor (White pawn) moves up: [-1, 1] and [1, 1]
-    const directions = impostorColor === "white"
-      ? [[-1, -1], [1, -1]]
-      : [[-1, 1], [1, 1]];
+    const directions = [
+      [-1, -1], [-1, 1], [1, -1], [1, 1]
+    ];
 
     for (const [df, dr] of directions) {
       let step = 1;
@@ -128,7 +122,8 @@ export function applyImpostorMove(
   fen: string,
   fromSquare: string,
   toSquare: string,
-  impostorColor: Color
+  impostorColor: Color,
+  moveType: MoveType
 ): string {
   const chess = new Chess(fen);
   const chessColor = impostorColor === "white" ? "w" : "b";
@@ -137,10 +132,13 @@ export function applyImpostorMove(
   const targetPiece = chess.get(toSquare as any);
   const isCapture = !!targetPiece;
 
-  // Remove pawn from source, place on destination (removing any capture)
+  // The impostor reveals its true form: knight move → becomes knight, bishop move → becomes bishop
+  const pieceType = moveType === "knight" ? "n" : "b";
+
+  // Remove pawn from source, place transformed piece on destination
   chess.remove(fromSquare as any);
   chess.remove(toSquare as any);
-  chess.put({ type: "p", color: chessColor }, toSquare as any);
+  chess.put({ type: pieceType, color: chessColor }, toSquare as any);
 
   // Rebuild FEN with switched turn
   const parts = chess.fen().split(" ");
@@ -311,6 +309,22 @@ export function trackImpostorPawn(
     return null;
   }
   return impostorSquare;
+}
+
+export function trackRevealedPiece(
+  revealedSquare: string | null,
+  lastMove: { from: string; to: string } | null
+): string | null {
+  if (!revealedSquare || !lastMove) return revealedSquare;
+  // If the revealed piece moved, follow it
+  if (lastMove.from === revealedSquare) {
+    return lastMove.to;
+  }
+  // If something captured the revealed piece
+  if (lastMove.to === revealedSquare) {
+    return null;
+  }
+  return revealedSquare;
 }
 
 export function trackSecuredPawns(
