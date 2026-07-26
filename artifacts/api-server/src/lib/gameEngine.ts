@@ -17,9 +17,17 @@ function coordsToSquare(file: number, rank: number): string | null {
   return FILES[file] + RANKS[rank];
 }
 
-export function getImpostorMoves(fromSquare: string, moveType: MoveType): string[] {
+export function getImpostorMoves(
+  fromSquare: string,
+  moveType: MoveType,
+  impostorColor: Color,
+  fen?: string,
+  securedSquares: string[] = []
+): string[] {
   const [file, rank] = squareToCoords(fromSquare);
   const destinations: string[] = [];
+  const chess = fen ? new Chess(fen) : null;
+  const playerChessColor = impostorColor === "white" ? "w" : "b";
 
   if (moveType === "knight") {
     const knightDeltas = [
@@ -28,18 +36,51 @@ export function getImpostorMoves(fromSquare: string, moveType: MoveType): string
     ];
     for (const [df, dr] of knightDeltas) {
       const sq = coordsToSquare(file + df, rank + dr);
-      if (sq) destinations.push(sq);
+      if (sq) {
+        if (chess) {
+          const piece = chess.get(sq as any);
+          // Cannot capture own piece or King
+          if (piece && (piece.color === playerChessColor || piece.type === "k")) {
+            continue;
+          }
+        }
+        destinations.push(sq);
+      }
     }
   } else {
-    // Bishop move = one square diagonal in any direction
-    const bishopDeltas = [[-1, -1], [-1, 1], [1, -1], [1, 1]];
-    for (const [df, dr] of bishopDeltas) {
-      const sq = coordsToSquare(file + df, rank + dr);
-      if (sq) destinations.push(sq);
+    // Bishop move = slide diagonally in all 4 directions (standard bishop move)
+    const directions = [
+      [-1, -1], [-1, 1], [1, -1], [1, 1]
+    ];
+
+    for (const [df, dr] of directions) {
+      let step = 1;
+      while (true) {
+        const nextFile = file + df * step;
+        const nextRank = rank + dr * step;
+        const sq = coordsToSquare(nextFile, nextRank);
+        if (!sq) break; // off board
+
+        if (chess) {
+          const piece = chess.get(sq as any);
+          if (!piece) {
+            destinations.push(sq);
+          } else {
+            // Cannot capture own piece or King
+            if (piece.color !== playerChessColor && piece.type !== "k") {
+              destinations.push(sq);
+            }
+            break; // blocked
+          }
+        } else {
+          destinations.push(sq);
+        }
+        step++;
+      }
     }
   }
 
-  return destinations;
+  return destinations.filter((sq) => !securedSquares.includes(sq));
 }
 
 export function isValidImpostorMove(
@@ -47,7 +88,8 @@ export function isValidImpostorMove(
   toSquare: string,
   moveType: MoveType,
   fen: string,
-  impostorColor: Color
+  impostorColor: Color,
+  securedSquares: string[] = []
 ): { valid: boolean; error?: string } {
   const chess = new Chess(fen);
   const impostorPiece = chess.get(fromSquare as any);
@@ -59,7 +101,18 @@ export function isValidImpostorMove(
     return { valid: false, error: "Impostor is not a pawn" };
   }
 
-  const validDestinations = getImpostorMoves(fromSquare, moveType);
+  // Validate that the impostor has left its home rank
+  const [_, rank] = squareToCoords(fromSquare);
+  const startingRank = impostorColor === "white" ? 6 : 1; // Rank 7 (index 6) for White's impostor, Rank 2 (index 1) for Black's impostor
+  if (rank === startingRank) {
+    return { valid: false, error: "Impostor pawn cannot be activated from its starting rank" };
+  }
+
+  if (securedSquares.includes(toSquare)) {
+    return { valid: false, error: "Cannot capture a secured pawn with a knight or bishop" };
+  }
+
+  const validDestinations = getImpostorMoves(fromSquare, moveType, impostorColor, fen, securedSquares);
   if (!validDestinations.includes(toSquare)) {
     return { valid: false, error: `Invalid ${moveType} move destination` };
   }
@@ -71,6 +124,11 @@ export function isValidImpostorMove(
     return { valid: false, error: "Cannot capture own piece" };
   }
 
+  // Cannot capture the king
+  if (targetPiece && targetPiece.type === "k") {
+    return { valid: false, error: "Cannot capture the king" };
+  }
+
   return { valid: true };
 }
 
@@ -78,15 +136,23 @@ export function applyImpostorMove(
   fen: string,
   fromSquare: string,
   toSquare: string,
-  impostorColor: Color
+  impostorColor: Color,
+  moveType: MoveType
 ): string {
   const chess = new Chess(fen);
   const chessColor = impostorColor === "white" ? "w" : "b";
 
-  // Remove pawn from source, place on destination (removing any capture)
+  // Check if there is a piece at the destination square to determine if a capture occurred
+  const targetPiece = chess.get(toSquare as any);
+  const isCapture = !!targetPiece;
+
+  // The impostor reveals its true form: knight move → becomes knight, bishop move → becomes bishop
+  const pieceType = moveType === "knight" ? "n" : "b";
+
+  // Remove pawn from source, place transformed piece on destination
   chess.remove(fromSquare as any);
   chess.remove(toSquare as any);
-  chess.put({ type: "p", color: chessColor }, toSquare as any);
+  chess.put({ type: pieceType, color: chessColor }, toSquare as any);
 
   // Rebuild FEN with switched turn
   const parts = chess.fen().split(" ");
@@ -95,8 +161,9 @@ export function applyImpostorMove(
   parts[1] = currentTurn === "w" ? "b" : "w";
   // Reset en passant
   parts[3] = "-";
-  // Increment half-move clock
-  parts[4] = "0"; // capture resets it
+  // Update half-move clock (reset on capture, increment otherwise)
+  const halfMoveClock = parseInt(parts[4]);
+  parts[4] = isCapture ? "0" : String(halfMoveClock + 1);
   // Increment full move number if black just moved
   if (impostorColor === "black") {
     parts[5] = String(parseInt(parts[5]) + 1);
@@ -129,6 +196,39 @@ export function applyInvestigationPenalty(fen: string, penalizedColor: Color): s
 
   // Rebuild with same turn
   return chess.fen();
+}
+
+export function removePieceOfType(fen: string, penalizedColor: Color, pieceType: "n" | "b"): string {
+  const chess = new Chess(fen);
+  const chessColor = penalizedColor === "white" ? "w" : "b";
+
+  for (const square of getAllSquares()) {
+    const piece = chess.get(square as any);
+    if (!piece || piece.color !== chessColor) continue;
+    if (piece.type === pieceType) {
+      chess.remove(square as any);
+      break;
+    }
+  }
+
+  return chess.fen();
+}
+
+export function hasKnightOrBishop(fen: string, penalizedColor: Color): { knight: boolean; bishop: boolean } {
+  const chess = new Chess(fen);
+  const chessColor = penalizedColor === "white" ? "w" : "b";
+  let knight = false;
+  let bishop = false;
+
+  for (const square of getAllSquares()) {
+    const piece = chess.get(square as any);
+    if (piece && piece.color === chessColor) {
+      if (piece.type === "n") knight = true;
+      if (piece.type === "b") bishop = true;
+    }
+  }
+
+  return { knight, bishop };
 }
 
 export function isSecuredPawnAttacked(
@@ -164,6 +264,11 @@ export function applyStandardMove(
   securedSquares: string[] = []
 ): { newFen: string; captured?: string; promotion?: boolean; error?: string } {
   const chess = new Chess(fen);
+
+  // Validate promotion piece
+  if (promotion && !["q", "r", "b", "n"].includes(promotion.toLowerCase())) {
+    return { newFen: fen, error: "Invalid promotion piece" };
+  }
 
   // Block knight/bishop captures on secured pawns
   if (isSecuredPawnAttacked(fen, { from, to }, securedSquares)) {
@@ -215,11 +320,55 @@ export function trackImpostorPawn(
   }
   // If the impostor pawn was captured (something moved to its square)
   if (lastMove.to === impostorSquare) {
-    const chess = new Chess(fen);
-    const piece = chess.get(impostorSquare as any);
-    if (!piece) return null; // captured — en passant
+    return null;
   }
   return impostorSquare;
+}
+
+export function trackRevealedPiece(
+  revealedSquare: string | null,
+  lastMove: { from: string; to: string } | null
+): string | null {
+  if (!revealedSquare || !lastMove) return revealedSquare;
+  // If the revealed piece moved, follow it
+  if (lastMove.from === revealedSquare) {
+    return lastMove.to;
+  }
+  // If something captured the revealed piece
+  if (lastMove.to === revealedSquare) {
+    return null;
+  }
+  return revealedSquare;
+}
+
+export function trackSecuredPawns(
+  fen: string,
+  securedSquares: string[],
+  lastMove: { from: string; to: string; promotion?: boolean } | null
+): string[] {
+  if (!securedSquares || securedSquares.length === 0 || !lastMove) {
+    return securedSquares || [];
+  }
+  const chess = new Chess(fen);
+  return securedSquares
+    .map((sq) => {
+      // If the secured pawn moved normally
+      if (lastMove.from === sq) {
+        if (lastMove.promotion) return null;
+        return lastMove.to;
+      }
+      // If the secured pawn was captured directly
+      if (lastMove.to === sq) {
+        return null;
+      }
+      // If the secured pawn was captured en passant or otherwise removed
+      const piece = chess.get(sq as any);
+      if (!piece || piece.type !== "p") {
+        return null;
+      }
+      return sq;
+    })
+    .filter((sq): sq is string => sq !== null);
 }
 
 export function isImpostorCaptured(fen: string, impostorSquare: string | null): boolean {
@@ -268,4 +417,19 @@ export function isValidImpostorSelection(
   }
 
   return { valid: true };
+}
+
+export function switchFenTurn(fen: string, activeColor: Color): string {
+  const parts = fen.split(" ");
+  // Switch active turn flag
+  parts[1] = parts[1] === "w" ? "b" : "w";
+  // Reset en passant target square
+  parts[3] = "-";
+  // Increment halfmove clock
+  parts[4] = String(parseInt(parts[4]) + 1);
+  // Increment fullmove number if black was the active player whose turn just ended
+  if (activeColor === "black") {
+    parts[5] = String(parseInt(parts[5]) + 1);
+  }
+  return parts.join(" ");
 }

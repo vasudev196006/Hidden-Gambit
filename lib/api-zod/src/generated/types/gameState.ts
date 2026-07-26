@@ -5,6 +5,7 @@
  * Deception Chess API
  * OpenAPI spec version: 0.1.0
  */
+import type { GameStatePenaltyTargetColor } from './gameStatePenaltyTargetColor';
 import type { GameStateStatus } from './gameStateStatus';
 import type { GameStateTurn } from './gameStateTurn';
 import type { GameStateWinner } from './gameStateWinner';
@@ -53,5 +54,10 @@ export interface GameState {
   lastEvent?: string | null;
   /** @nullable */
   winner?: GameStateWinner;
+  /**
+     * The color of the player being penalized (null if none)
+     * @nullable
+     */
+  penaltyTargetColor?: GameStatePenaltyTargetColor;
   moveCount: number;
 }

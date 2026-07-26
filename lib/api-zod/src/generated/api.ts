@@ -64,6 +64,7 @@ export const GetGameResponse = zod.object({
   "securedSquares": zod.array(zod.string()).describe('Squares of secured pawns'),
   "lastEvent": zod.string().nullish().describe('Description of last special event'),
   "winner": zod.union([zod.literal('white'),zod.literal('black'),zod.literal('draw'),zod.literal(null)]).nullish(),
+  "penaltyTargetColor": zod.union([zod.literal('white'),zod.literal('black'),zod.literal(null)]).nullish().describe('The color of the player being penalized (null if none)'),
   "moveCount": zod.number()
 })
 

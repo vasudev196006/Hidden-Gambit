@@ -22,6 +22,7 @@ export const gamesTable = pgTable("games", {
   securedSquares: text("secured_squares").array().notNull().default([]),
   lastEvent: text("last_event"),
   winner: text("winner"),
+  penaltyTargetColor: text("penalty_target_color"),
   moveCount: integer("move_count").notNull().default(0),
   moveHistory: jsonb("move_history").notNull().default([]),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),

@@ -37,12 +37,70 @@ function coordsToSquare(f: number, r: number): string | null {
   if (f < 0 || f > 7 || r < 0 || r > 7) return null;
   return FILES[f] + RANKS[r];
 }
-function getImpostorTargets(from: string, moveType: "knight" | "bishop"): string[] {
+function getImpostorTargets(
+  from: string,
+  moveType: "knight" | "bishop",
+  myColor: "white" | "black",
+  fen?: string,
+  securedSquares: string[] = []
+): string[] {
   const [f, r] = squareToCoords(from);
-  const deltas = moveType === "knight" ? KNIGHT_DELTAS : BISHOP_DELTAS;
-  return deltas
-    .map(([df, dr]) => coordsToSquare(f + df, r + dr))
-    .filter((s): s is string => s !== null);
+  const destinations: string[] = [];
+  const chess = fen ? new Chess(fen) : null;
+  const playerChessColor = myColor === "white" ? "w" : "b";
+
+  if (moveType === "knight") {
+    const knightDeltas = [
+      [-2, -1], [-2, 1], [-1, -2], [-1, 2],
+      [1, -2], [1, 2], [2, -1], [2, 1],
+    ];
+    for (const [df, dr] of knightDeltas) {
+      const sq = coordsToSquare(f + df, r + dr);
+      if (sq) {
+        if (chess) {
+          const piece = chess.get(sq as any);
+          // Cannot capture own piece or King
+          if (piece && (piece.color === playerChessColor || piece.type === "k")) {
+            continue;
+          }
+        }
+        destinations.push(sq);
+      }
+    }
+  } else {
+    // Bishop move = slide diagonally in all 4 directions (standard bishop move)
+    const directions = [
+      [-1, -1], [-1, 1], [1, -1], [1, 1]
+    ];
+
+    for (const [df, dr] of directions) {
+      let step = 1;
+      while (true) {
+        const nextFile = f + df * step;
+        const nextRank = r + dr * step;
+        const sq = coordsToSquare(nextFile, nextRank);
+        if (!sq) break; // off board
+
+        if (chess) {
+          const piece = chess.get(sq as any);
+          if (!piece) {
+            destinations.push(sq);
+          } else {
+            // Cannot capture own piece or King
+            if (piece.color !== playerChessColor && piece.type !== "k") {
+              destinations.push(sq);
+            }
+            break; // blocked
+          }
+        } else {
+          destinations.push(sq);
+        }
+        step++;
+      }
+    }
+  }
+
+  return destinations.filter((sq) => !securedSquares.includes(sq));
 }
 
 export default function Game() {
@@ -64,8 +122,17 @@ export default function Game() {
   const [investigateTarget, setInvestigateTarget] = useState<string | null>(null);
   const [investigateDialogOpen, setInvestigateDialogOpen] = useState(false);
 
+  // Penalty selection state
+  const [penaltySelectionType, setPenaltySelectionType] = useState<"knight" | "bishop" | null>(null);
+
   // Click-to-move state
   const [selectedSquare, setSelectedSquare] = useState<string | null>(null);
+
+  // Drag-start square (for showing move hints during drag)
+  const [dragSquare, setDragSquare] = useState<string | null>(null);
+
+  // Pawn promotion state
+  const [pendingPromotion, setPendingPromotion] = useState<{ from: string; to: string } | null>(null);
 
   // Last move highlight
   const [lastMove, setLastMove] = useState<{ from: string; to: string } | null>(null);
@@ -113,6 +180,7 @@ export default function Game() {
       setImpostorTargets([]);
       setInvestigateMode(false);
       setSelectedSquare(null);
+      setPenaltySelectionType(null);
     });
 
     socket.on("moveError", (error: { message: string }) => {
@@ -132,11 +200,12 @@ export default function Game() {
     setGameState((prev) => {
       if (!prev) return initialData;
       if (prev.status === "waiting" || prev.status === "selecting") {
-        // Never overwrite a known myColor with null from a stale REST response
-        if (prev.myColor && !initialData.myColor) {
-          return { ...initialData, myColor: prev.myColor, myImpostorSquare: prev.myImpostorSquare };
-        }
-        return initialData;
+        // Merge initialData but preserve player-specific socket values if they exist in prev
+        return {
+          ...initialData,
+          myColor: prev.myColor ?? initialData.myColor,
+          myImpostorSquare: prev.myImpostorSquare ?? initialData.myImpostorSquare,
+        };
       }
       return prev; // active/finished: socket is source of truth
     });
@@ -161,8 +230,56 @@ export default function Game() {
     );
   }, [playerId, id, setImpostor, toast]);
 
+  const checkIsPromotion = useCallback((from: string, to: string) => {
+    if (!gameState) return false;
+    try {
+      const chess = new Chess(gameState.fen);
+      const piece = chess.get(from as any);
+      if (piece && piece.type === "p") {
+        const isWhitePawn = piece.color === "w" && to.endsWith("8");
+        const isBlackPawn = piece.color === "b" && to.endsWith("1");
+        if (isWhitePawn || isBlackPawn) {
+          const moves = chess.moves({ square: from as any, verbose: true });
+          return moves.some((m) => m.to === to);
+        }
+      }
+    } catch (e) {
+      console.error(e);
+    }
+    return false;
+  }, [gameState]);
+
+  const handleConfirmPromotion = useCallback((piece: "q" | "r" | "b" | "n") => {
+    if (!pendingPromotion || !id || !playerId) return;
+    socket.emit("makeMove", {
+      gameId: id,
+      playerId,
+      from: pendingPromotion.from,
+      to: pendingPromotion.to,
+      promotion: piece,
+    });
+    setPendingPromotion(null);
+  }, [pendingPromotion, id, playerId]);
+
   const handleBoardClick = useCallback((square: string) => {
     if (!gameState || !playerId) return;
+
+    // Penalty selection click handling
+    if (penaltySelectionType && gameState.penaltyTargetColor) {
+      const penalizedColor = gameState.penaltyTargetColor;
+      const targetChessColor = penalizedColor === "white" ? "w" : "b";
+      const targetType = penaltySelectionType === "knight" ? "n" : "b";
+
+      const chess = new Chess(gameState.fen);
+      const piece = chess.get(square as any);
+      if (piece && piece.color === targetChessColor && piece.type === targetType) {
+        socket.emit("selectPenalty", { gameId: id, playerId, square });
+        setPenaltySelectionType(null);
+      }
+      return;
+    }
+
+    if (gameState.penaltyTargetColor) return;
 
     // Impostor destination selection
     if (impostorPhase === "pickDestination" && impostorMoveType && gameState.myImpostorSquare) {
@@ -183,9 +300,14 @@ export default function Game() {
 
     // Investigation mode
     if (investigateMode) {
-      setInvestigateTarget(square);
-      setInvestigateDialogOpen(true);
-      setInvestigateMode(false);
+      const chess = new Chess(gameState.fen);
+      const piece = chess.get(square as any);
+      const playerChessColor = gameState.myColor === "white" ? "w" : "b";
+      if (piece && piece.type === "p" && piece.color === playerChessColor) {
+        setInvestigateTarget(square);
+        setInvestigateDialogOpen(true);
+        setInvestigateMode(false);
+      }
       return;
     }
 
@@ -203,12 +325,16 @@ export default function Game() {
     if (gameState.status === "active" && gameState.turn === gameState.myColor) {
       if (selectedSquare) {
         if (selectedSquare !== square) {
+          if (checkIsPromotion(selectedSquare, square)) {
+            setPendingPromotion({ from: selectedSquare, to: square });
+            setSelectedSquare(null);
+            return;
+          }
           socket.emit("makeMove", {
             gameId: id,
             playerId,
             from: selectedSquare,
             to: square,
-            promotion: "q",
           });
         }
         setSelectedSquare(null);
@@ -216,13 +342,41 @@ export default function Game() {
         setSelectedSquare(square);
       }
     }
-  }, [gameState, playerId, impostorPhase, impostorMoveType, impostorTargets, investigateMode, selectedSquare, id, handleSelectImpostor]);
+  }, [gameState, playerId, impostorPhase, impostorMoveType, impostorTargets, investigateMode, selectedSquare, id, handleSelectImpostor, penaltySelectionType, checkIsPromotion]);
 
   const onDrop = useCallback(({ sourceSquare, targetSquare }: PieceDropHandlerArgs) => {
-    if (!gameState || gameState.status !== "active" || gameState.turn !== gameState.myColor) return false;
-    socket.emit("makeMove", { gameId: id, playerId, from: sourceSquare, to: targetSquare, promotion: "q" });
+    setDragSquare(null);
+    if (!sourceSquare || !targetSquare) return false;
+    if (!gameState || gameState.status !== "active" || gameState.turn !== gameState.myColor || gameState.penaltyTargetColor) return false;
+    if (checkIsPromotion(sourceSquare, targetSquare)) {
+      setPendingPromotion({ from: sourceSquare, to: targetSquare });
+      return false;
+    }
+    socket.emit("makeMove", { gameId: id, playerId, from: sourceSquare, to: targetSquare });
     return true;
-  }, [gameState, id, playerId]);
+  }, [gameState, id, playerId, checkIsPromotion]);
+
+  const onPieceDrag = useCallback(({ square }: { piece: any; square: any; isSparePiece: boolean }) => {
+    if (!gameState || gameState.status !== "active" || gameState.turn !== gameState.myColor) return;
+    setDragSquare(square);
+    setSelectedSquare(null);
+  }, [gameState]);
+
+  // onSquareMouseDown fires instantly (before drag threshold) — use this to show
+  // move hints immediately when the user starts pressing on one of their pieces.
+  const onSquareMouseDown = useCallback(({ piece, square }: { piece: { pieceType: string } | null; square: string }) => {
+    if (!gameState || gameState.status !== "active" || gameState.turn !== gameState.myColor) return;
+    if (impostorPhase !== "idle" || investigateMode || gameState.penaltyTargetColor) return;
+    if (!piece) return;
+    // pieceType is e.g. "wP", "bN" — first char is the color
+    const playerColorChar = gameState.myColor === "white" ? "w" : "b";
+    if (piece.pieceType[0] !== playerColorChar) return;
+    setDragSquare(square);
+  }, [gameState, impostorPhase, investigateMode]);
+
+  const onSquareMouseUp = useCallback(() => {
+    setDragSquare(null);
+  }, []);
 
   const startImpostor = () => setImpostorPhase("pickMoveType");
   const cancelImpostor = () => {
@@ -231,9 +385,10 @@ export default function Game() {
     setImpostorTargets([]);
   };
   const pickMoveType = (mt: "knight" | "bishop") => {
-    if (!gameState?.myImpostorSquare) return;
+    if (!gameState?.myImpostorSquare || (gameState.myColor !== "white" && gameState.myColor !== "black")) return;
+    const color = gameState.myColor;
     setImpostorMoveType(mt);
-    setImpostorTargets(getImpostorTargets(gameState.myImpostorSquare, mt));
+    setImpostorTargets(getImpostorTargets(gameState.myImpostorSquare, mt, color, gameState.fen, gameState.securedSquares));
     setImpostorPhase("pickDestination");
   };
   const startInvestigate = () => setInvestigateMode(true);
@@ -243,6 +398,7 @@ export default function Game() {
     setInvestigateDialogOpen(false);
     setInvestigateTarget(null);
   };
+
   const resign = () => {
     if (playerId) socket.emit("resign", { gameId: id, playerId });
   };
@@ -256,15 +412,54 @@ export default function Game() {
   }
 
   const isPlayer = !!gameState.myColor;
+
+  const isPenaltyPending = !!gameState.penaltyTargetColor;
+  const isChoosingPenalty = isPenaltyPending && gameState.myColor === (gameState.penaltyTargetColor === "white" ? "black" : "white") && !penaltySelectionType;
+  const isPenalizedPlayer = isPenaltyPending && gameState.myColor === gameState.penaltyTargetColor;
+
+  const penalizedColor = gameState.penaltyTargetColor;
+  let opponentHasKnight = false;
+  let opponentHasBishop = false;
+
+  if (penalizedColor) {
+    const chess = new Chess(gameState.fen);
+    const targetChessColor = penalizedColor === "white" ? "w" : "b";
+
+    // Count pieces
+    for (let r = 0; r < 8; r++) {
+      for (let c = 0; c < 8; c++) {
+        const square = FILES[c] + RANKS[r];
+        const piece = chess.get(square as any);
+        if (piece && piece.color === targetChessColor) {
+          if (piece.type === "n") opponentHasKnight = true;
+          if (piece.type === "b") opponentHasBishop = true;
+        }
+      }
+    }
+  }
+
   const isMyTurn = gameState.turn === gameState.myColor;
+  const hasImpostorLeftStartingRank =
+    gameState.myImpostorSquare &&
+    (gameState.myColor === "white"
+      ? !gameState.myImpostorSquare.endsWith("7")
+      : !gameState.myImpostorSquare.endsWith("2"));
+
   const impostorAvailable =
     isMyTurn &&
     gameState.status === "active" &&
+    !isPenaltyPending &&
     !!(gameState.myColor === "white" ? !gameState.whiteImpostorUsed : !gameState.blackImpostorUsed) &&
-    !!gameState.myImpostorSquare;
+    !!gameState.myImpostorSquare &&
+    !!hasImpostorLeftStartingRank;
+  const opponentImpostorUsed =
+    gameState.myColor === "white" ? gameState.blackImpostorUsed : gameState.whiteImpostorUsed;
+
   const investigateAvailable =
     isMyTurn &&
     gameState.status === "active" &&
+    !isPenaltyPending &&
+    !opponentImpostorUsed &&
     !!(gameState.myColor === "white" ? !gameState.whiteInvestigationUsed : !gameState.blackInvestigationUsed);
 
   // Check detection (client-side, no extra round-trip)
@@ -326,6 +521,43 @@ export default function Game() {
     };
   }
 
+  // Move hint dots (chess.com style) — show for selected square or drag square
+  const hintSource = selectedSquare ?? dragSquare;
+  if (
+    hintSource &&
+    chessInstance &&
+    gameState.status === "active" &&
+    isMyTurn &&
+    impostorPhase === "idle" &&
+    !investigateMode &&
+    !isPenaltyPending
+  ) {
+    const moves = chessInstance.moves({ square: hintSource as any, verbose: true });
+    moves.forEach((m) => {
+      // Filter out knight/bishop captures on secured pawns
+      const isSecuredCapture =
+        gameState.securedSquares.includes(m.to) &&
+        (m.piece === "n" || m.piece === "b");
+      if (isSecuredCapture) return;
+
+      const targetPiece = chessInstance.get(m.to as any);
+      if (targetPiece) {
+        // Capture square — ring border
+        customSquareStyles[m.to] = {
+          ...customSquareStyles[m.to],
+          borderRadius: "50%",
+          boxShadow: "inset 0 0 0 4px rgba(0,0,0,0.35)",
+        };
+      } else {
+        // Empty square — small centered dot
+        customSquareStyles[m.to] = {
+          ...customSquareStyles[m.to],
+          background: "radial-gradient(circle, rgba(0,0,0,0.28) 25%, transparent 26%)",
+        };
+      }
+    });
+  }
+
   // Last move highlight (subtle amber tint)
   if (lastMove && impostorPhase === "idle" && !investigateMode) {
     customSquareStyles[lastMove.from] = {
@@ -338,22 +570,61 @@ export default function Game() {
     };
   }
 
-  // Investigate mode — highlight own pawn rank (the rank the opponent chose their impostor from)
-  if (investigateMode && gameState.myColor) {
-    // White investigates rank 2 (their own pawns that black may control)
-    // Black investigates rank 7 (their own pawns that white may control)
-    const ownRank = gameState.myColor === "white" ? "2" : "7";
-    ["a","b","c","d","e","f","g","h"].forEach((file) => {
-      customSquareStyles[`${file}${ownRank}`] = {
-        cursor: "pointer",
-        backgroundColor: "rgba(168, 85, 247, 0.25)",
-        boxShadow: "inset 0 0 8px 1px rgba(168,85,247,0.5)",
-      };
+  // Investigate mode — highlight own pawns currently on the board
+  if (investigateMode && gameState.myColor && chessInstance) {
+    const playerChessColor = gameState.myColor === "white" ? "w" : "b";
+    FILES.forEach((file) => {
+      RANKS.forEach((rank) => {
+        const sq = `${file}${rank}`;
+        const piece = chessInstance.get(sq as any);
+        if (piece && piece.type === "p" && piece.color === playerChessColor) {
+          customSquareStyles[sq] = {
+            cursor: "pointer",
+            backgroundColor: "rgba(168, 85, 247, 0.25)",
+            boxShadow: "inset 0 0 8px 1px rgba(168,85,247,0.5)",
+          };
+        }
+      });
     });
+  }
+
+  // Penalty piece selection highlights
+  if (penaltySelectionType && penalizedColor) {
+    const targetChessColor = penalizedColor === "white" ? "w" : "b";
+    const targetType = penaltySelectionType === "knight" ? "n" : "b";
+    for (let r = 0; r < 8; r++) {
+      for (let c = 0; c < 8; c++) {
+        const square = FILES[c] + RANKS[r];
+        const piece = chessInstance?.get(square as any);
+        if (piece && piece.color === targetChessColor && piece.type === targetType) {
+          customSquareStyles[square] = {
+            backgroundColor: "rgba(220, 38, 38, 0.4)",
+            cursor: "pointer",
+            boxShadow: "inset 0 0 16px 4px rgba(220,38,38,1)",
+          };
+        }
+      }
+    }
   }
 
   return (
     <div className="min-h-screen bg-background flex flex-col md:flex-row p-4 gap-6" data-testid="game-page">
+      <style>{`
+        ${gameState.whiteImpostorRevealed ? `
+          [data-square="${gameState.whiteImpostorRevealed}"] img,
+          [data-square="${gameState.whiteImpostorRevealed}"] svg,
+          [data-square="${gameState.whiteImpostorRevealed}"] > div {
+            filter: drop-shadow(0 0 6px rgba(239, 68, 68, 0.95)) drop-shadow(0 0 2px rgba(239, 68, 68, 0.95)) !important;
+          }
+        ` : ""}
+        ${gameState.blackImpostorRevealed ? `
+          [data-square="${gameState.blackImpostorRevealed}"] img,
+          [data-square="${gameState.blackImpostorRevealed}"] svg,
+          [data-square="${gameState.blackImpostorRevealed}"] > div {
+            filter: drop-shadow(0 0 6px rgba(239, 68, 68, 0.95)) drop-shadow(0 0 2px rgba(239, 68, 68, 0.95)) !important;
+          }
+        ` : ""}
+      `}</style>
 
       {/* Board */}
       <div className="flex-1 flex flex-col items-center justify-center w-full">
@@ -362,14 +633,69 @@ export default function Game() {
             options={{
               position: gameState.fen,
               onPieceDrop: onDrop,
+              onPieceDrag: onPieceDrag,
               onSquareClick: ({ square }) => handleBoardClick(square),
+              onSquareMouseDown: (args, e) => onSquareMouseDown(args as any),
+              onSquareMouseUp: () => onSquareMouseUp(),
               boardOrientation: gameState.myColor === "black" ? "black" : "white",
               squareStyles: customSquareStyles,
-              darkSquareStyle: { backgroundColor: "#3d2b1f" },
-              lightSquareStyle: { backgroundColor: "#7d5c45" },
-              allowDragging: isMyTurn && gameState.status === "active" && impostorPhase === "idle" && !investigateMode
+              darkSquareStyle: { backgroundColor: "#769656" },
+              lightSquareStyle: { backgroundColor: "#eeeed2" },
+              allowDragging: isMyTurn && gameState.status === "active" && impostorPhase === "idle" && !investigateMode && !isPenaltyPending
             }}
           />
+
+          {/* Pawn Promotion Dropdown Menu (Chess.com Style) */}
+          {pendingPromotion && (() => {
+            const file = pendingPromotion.to[0];
+            const rank = pendingPromotion.to[1];
+            const fileIdx = FILES.indexOf(file);
+            const fileIndex = gameState.myColor === "black" ? 7 - fileIdx : fileIdx;
+            const leftOffset = `calc(12px + ${fileIndex} * (100% - 24px) / 8)`;
+            const squareWidth = `calc((100% - 24px) / 8)`;
+            const isTop = rank === "8";
+            const pieceColor = isTop ? "w" : "b"; 
+            const pieceSymbols = pieceColor === "w"
+              ? { q: "♕", r: "♖", b: "♗", n: "♘" }
+              : { q: "♛", r: "♜", b: "♝", n: "♞" };
+            const options: Array<"q" | "r" | "b" | "n"> = ["q", "r", "b", "n"];
+
+            return (
+              <>
+                {/* Backdrop to cancel promotion */}
+                <div 
+                  className="fixed inset-0 z-30 cursor-default" 
+                  onClick={() => setPendingPromotion(null)} 
+                />
+                
+                {/* Vertical dropdown menu over column */}
+                <div 
+                  className="absolute z-40 flex flex-col bg-card border border-border rounded shadow-2xl overflow-hidden"
+                  style={{ 
+                    left: leftOffset, 
+                    width: squareWidth, 
+                    top: isTop ? "12px" : "auto", 
+                    bottom: isTop ? "auto" : "12px",
+                    boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.5)"
+                  }}
+                >
+                  {options.map((opt) => (
+                    <button
+                      key={opt}
+                      onClick={() => handleConfirmPromotion(opt)}
+                      className="w-full aspect-square flex items-center justify-center text-3xl font-medium transition-colors hover:bg-primary/20 active:bg-primary/30 bg-card border-b border-border/50 last:border-b-0"
+                      style={{
+                        color: pieceColor === "w" ? "#ffffff" : "#000000",
+                        textShadow: pieceColor === "w" ? "0 0 2px #000000" : "0 0 2px #ffffff",
+                      }}
+                    >
+                      {pieceSymbols[opt]}
+                    </button>
+                  ))}
+                </div>
+              </>
+            );
+          })()}
 
           {/* Waiting overlay */}
           {gameState.status === "waiting" && (
@@ -432,6 +758,23 @@ export default function Game() {
               <span className="text-sm font-mono text-primary">Click a highlighted square to move</span>
               <Button variant="ghost" size="sm" onClick={cancelImpostor}>
                 <X className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
+
+          {/* Penalty selection hint and label */}
+          {penaltySelectionType && (
+            <div className="absolute bottom-0 left-0 right-0 bg-background/90 border-t border-red-500/40 p-3 rounded-b-xl z-20 flex items-center justify-between">
+              <span className="text-sm font-mono text-red-500 font-bold">
+                {penaltySelectionType === "bishop" ? "select the bishop" : "select the knight"}
+              </span>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setPenaltySelectionType(null)}
+                className="text-red-500 hover:text-red-600 hover:bg-red-500/10"
+              >
+                <X className="h-4 w-4 mr-1" /> Cancel
               </Button>
             </div>
           )}
@@ -535,16 +878,40 @@ export default function Game() {
               <span className="text-muted-foreground">Your impostor</span>
               <span className="font-mono text-xs">
                 {gameState.myColor === "white"
-                  ? gameState.whiteImpostorUsed ? <span className="text-muted-foreground">Burned</span> : <span className="text-green-500">Active</span>
-                  : gameState.blackImpostorUsed ? <span className="text-muted-foreground">Burned</span> : <span className="text-green-500">Active</span>}
+                  ? gameState.whiteImpostorUsed
+                    ? <span className="text-muted-foreground">Burned</span>
+                    : !gameState.myImpostorSquare
+                      ? gameState.whiteImpostorRevealed
+                        ? <span className="text-red-400 font-bold">Neutralized</span>
+                        : (gameState.status === "selecting" || gameState.status === "waiting")
+                          ? <span className="text-yellow-500 font-bold">Not Selected</span>
+                          : <span className="text-red-400 font-bold">Captured</span>
+                      : <span className="text-green-500 font-bold">Active</span>
+                  : gameState.blackImpostorUsed
+                    ? <span className="text-muted-foreground">Burned</span>
+                    : !gameState.myImpostorSquare
+                      ? gameState.blackImpostorRevealed
+                        ? <span className="text-red-400 font-bold">Neutralized</span>
+                        : (gameState.status === "selecting" || gameState.status === "waiting")
+                          ? <span className="text-yellow-500 font-bold">Not Selected</span>
+                          : <span className="text-red-400 font-bold">Captured</span>
+                      : <span className="text-green-500 font-bold">Active</span>}
               </span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-muted-foreground">Investigation</span>
               <span className="font-mono text-xs">
                 {gameState.myColor === "white"
-                  ? gameState.whiteInvestigationUsed ? <span className="text-muted-foreground">Used</span> : <span className="text-green-500">Available</span>
-                  : gameState.blackInvestigationUsed ? <span className="text-muted-foreground">Used</span> : <span className="text-green-500">Available</span>}
+                  ? gameState.whiteInvestigationUsed
+                    ? <span className="text-muted-foreground">Used</span>
+                    : opponentImpostorUsed
+                      ? <span className="text-muted-foreground">Unavailable</span>
+                      : <span className="text-green-500 font-bold">Available</span>
+                  : gameState.blackInvestigationUsed
+                    ? <span className="text-muted-foreground">Used</span>
+                    : opponentImpostorUsed
+                      ? <span className="text-muted-foreground">Unavailable</span>
+                      : <span className="text-green-500 font-bold">Available</span>}
               </span>
             </div>
             {gameState.securedSquares.length > 0 && (
@@ -603,7 +970,7 @@ export default function Game() {
 
               {investigateMode && (
                 <p className="text-xs text-muted-foreground text-center font-mono">
-                  Click one of your own highlighted pawns you think the opponent secretly controls. Wrong guess costs a knight and a bishop.
+                  Click one of your own highlighted pawns you think the opponent secretly controls. Wrong guess allows opponent to remove a knight or bishop.
                 </p>
               )}
 
@@ -629,7 +996,7 @@ export default function Game() {
               <AlertTriangle className="h-5 w-5" /> Investigate {investigateTarget}?
             </DialogTitle>
             <DialogDescription className="text-muted-foreground text-sm leading-relaxed">
-              <strong>If wrong:</strong> you lose 1 knight and 1 bishop immediately. The real impostor stays hidden.
+              <strong>If wrong:</strong> your opponent chooses whether to remove one of your knights or bishops. The real impostor stays hidden.
               <br /><br />
               <strong>If correct:</strong> the impostor is neutralized and the pawn becomes secured — immune to knight and bishop captures.
             </DialogDescription>
@@ -649,6 +1016,52 @@ export default function Game() {
               <ChevronRight className="mr-1 h-4 w-4" /> Confirm Investigation
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Choose Opponent Penalty Dialog */}
+      <Dialog open={isChoosingPenalty} onOpenChange={() => {}}>
+        <DialogContent className="bg-card border-border font-mono">
+          <DialogHeader>
+            <DialogTitle className="text-primary flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5" /> Choose Opponent's Penalty
+            </DialogTitle>
+            <DialogDescription className="text-muted-foreground text-sm leading-relaxed">
+              Your opponent wrongly investigated. Choose which piece of theirs you want to remove from the board:
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+            <Button
+              variant="destructive"
+              disabled={!opponentHasKnight}
+              onClick={() => setPenaltySelectionType("knight")}
+              className="font-mono text-sm w-full sm:w-auto"
+            >
+              Remove Knight {!opponentHasKnight && "(Unavailable)"}
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={!opponentHasBishop}
+              onClick={() => setPenaltySelectionType("bishop")}
+              className="font-mono text-sm w-full sm:w-auto"
+            >
+              Remove Bishop {!opponentHasBishop && "(Unavailable)"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Waiting for Penalty Choice Dialog */}
+      <Dialog open={isPenalizedPlayer} onOpenChange={() => {}}>
+        <DialogContent className="bg-card border-border font-mono">
+          <DialogHeader>
+            <DialogTitle className="text-primary flex items-center gap-2">
+              <Loader2 className="h-5 w-5 animate-spin" /> Penalty Choice Pending
+            </DialogTitle>
+            <DialogDescription className="text-muted-foreground text-sm leading-relaxed">
+              You wrongly accused/investigated. Awaiting opponent's choice on whether to remove your Knight or your Bishop...
+            </DialogDescription>
+          </DialogHeader>
         </DialogContent>
       </Dialog>
     </div>

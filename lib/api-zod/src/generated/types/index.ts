@@ -11,6 +11,7 @@ export * from './gameInput';
 export * from './gameJoin';
 export * from './gameJoinColor';
 export * from './gameState';
+export * from './gameStatePenaltyTargetColor';
 export * from './gameStateStatus';
 export * from './gameStateTurn';
 export * from './gameStateWinner';

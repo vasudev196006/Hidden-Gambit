@@ -1,5 +1,8 @@
 # Helper script to run local environment for Hidden Gambit chess game
 
+# Auto-reload and append Node.js and pnpm paths for this execution session
+$env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User") + ";C:\Users\vasudev\AppData\Roaming\npm;C:\Program Files\nodejs"
+
 if (-not (Test-Path .env)) {
     Write-Host "----------------------------------------------------------------------" -ForegroundColor Red
     Write-Host "Error: .env file not found!" -ForegroundColor Red
@@ -35,7 +38,8 @@ if (-not $env:DATABASE_URL -or $env:DATABASE_URL.Contains("user:password")) {
 
 # 1. Run Drizzle Push to update database schema
 Write-Host "`nStep 1: Pushing database schema via Drizzle ORM..." -ForegroundColor Cyan
-$pushResult = pnpm --filter @workspace/db run push
+$env:NODE_TLS_REJECT_UNAUTHORIZED = "0"
+$pushResult = pnpm --filter @workspace/db run push-force
 if ($LASTEXITCODE -ne 0) {
     Write-Host "`nWarning: Drizzle push returned exit code $LASTEXITCODE. Database might not be fully synced or schema was already up-to-date." -ForegroundColor Yellow
 } else {
@@ -44,8 +48,8 @@ if ($LASTEXITCODE -ne 0) {
 
 # 2. Start API backend server in a new window
 Write-Host "`nStep 2: Starting API server (backend) in a new window on port 5000..." -ForegroundColor Cyan
-$apiCommand = "`$env:DATABASE_URL='$($env:DATABASE_URL)'; `$env:PORT='5000'; pnpm --filter @workspace/api-server run dev"
-Start-Process powershell -ArgumentList "-NoExit", "-Command", $apiCommand
+$apiCommand = "`$env:Path = [System.Environment]::GetEnvironmentVariable('Path','Machine') + ';' + [System.Environment]::GetEnvironmentVariable('Path','User') + ';C:\Users\vasudev\AppData\Roaming\npm;C:\Program Files\nodejs'; `$env:DATABASE_URL='$($env:DATABASE_URL)'; `$env:PORT='5000'; `$env:NODE_TLS_REJECT_UNAUTHORIZED='0'; pnpm --filter @workspace/api-server run dev"
+Start-Process powershell -WorkingDirectory $PSScriptRoot -ArgumentList "-NoExit", "-Command", $apiCommand
 
 # 3. Start Frontend dev server in the current window
 Write-Host "`nStep 3: Starting Vite dev server (frontend) in the current window on port 3000..." -ForegroundColor Cyan

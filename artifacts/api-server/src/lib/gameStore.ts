@@ -37,6 +37,7 @@ export async function saveGame(game: Game): Promise<Game> {
       securedSquares: game.securedSquares,
       lastEvent: game.lastEvent,
       winner: game.winner,
+      penaltyTargetColor: game.penaltyTargetColor,
       moveCount: game.moveCount,
       moveHistory: game.moveHistory,
       updatedAt: new Date(),

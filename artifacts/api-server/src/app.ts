@@ -1,3 +1,4 @@
+import path from "node:path";
 import express, { type Express } from "express";
 import cors from "cors";
 import pinoHttp from "pino-http";
@@ -30,5 +31,20 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 app.use("/api", router);
+
+// Serve static assets in production
+if (process.env.NODE_ENV === "production") {
+  const publicPath = path.resolve(import.meta.dirname, "../../deception-chess/dist/public");
+  app.use(express.static(publicPath));
+  
+  // For any other request, serve index.html to enable client-side wouter routing
+  app.get(/.*/, (req, res, next) => {
+    // If it's a request to /api, pass it to the router/error handlers
+    if (req.path.startsWith("/api")) {
+      return next();
+    }
+    res.sendFile(path.join(publicPath, "index.html"));
+  });
+}
 
 export default app;
