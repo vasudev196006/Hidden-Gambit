@@ -40,10 +40,12 @@ export default function Join() {
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
       <div className="max-w-sm w-full space-y-6">
-        <div className="text-center">
-          <h1 className="text-5xl font-mono font-bold text-primary mb-2 uppercase tracking-tighter">
-            Deception<br />Chess
-          </h1>
+        <div className="text-center flex flex-col items-center">
+          <img 
+            src="/chess_logo.png" 
+            alt="Hidden Gambit Logo" 
+            className="h-36 w-auto object-contain mb-3 drop-shadow-[0_10px_25px_rgba(220,38,38,0.45)] hover:scale-105 transition-transform duration-300"
+          />
           <p className="text-muted-foreground">You've been invited to an operation.</p>
         </div>
 

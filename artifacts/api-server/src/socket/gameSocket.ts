@@ -54,6 +54,18 @@ export function buildGameState(game: any, requestingPlayerId?: string) {
   };
 }
 
+function getAuthorizedPlayerId(socket: Socket, payloadPlayerId?: string): { playerId: string | null; error?: string } {
+  const boundId = socket.data?.playerId;
+  if (boundId && payloadPlayerId && boundId !== payloadPlayerId) {
+    return { playerId: null, error: "Unauthorized: Player identity mismatch (IDOR attempt blocked)" };
+  }
+  const playerId = boundId || payloadPlayerId || null;
+  if (!playerId) {
+    return { playerId: null, error: "Unauthorized: Missing player identification" };
+  }
+  return { playerId };
+}
+
 export function registerGameSocket(io: SocketServer): void {
   io.on("connection", (socket: Socket) => {
     logger.info({ socketId: socket.id }, "Socket connected");
@@ -79,7 +91,7 @@ export function registerGameSocket(io: SocketServer): void {
 
     socket.on("makeMove", async ({
       gameId,
-      playerId,
+      playerId: rawPlayerId,
       from,
       to,
       promotion,
@@ -90,7 +102,15 @@ export function registerGameSocket(io: SocketServer): void {
       to: string;
       promotion?: string;
     }) => {
-      const game = await getGame(gameId);
+      const auth = getAuthorizedPlayerId(socket, rawPlayerId);
+      if (auth.error || !auth.playerId) {
+        socket.emit("moveError", { message: auth.error });
+        return;
+      }
+      const playerId = auth.playerId;
+      const effectiveGameId = socket.data.gameId || gameId;
+
+      const game = await getGame(effectiveGameId);
       if (!game) { socket.emit("moveError", { message: "Game not found" }); return; }
       if (game.status !== "active") {
         socket.emit("moveError", { message: "Game is not active" });
@@ -179,7 +199,7 @@ export function registerGameSocket(io: SocketServer): void {
 
     socket.on("activateImpostor", async ({
       gameId,
-      playerId,
+      playerId: rawPlayerId,
       fromSquare,
       toSquare,
       moveType,
@@ -190,7 +210,15 @@ export function registerGameSocket(io: SocketServer): void {
       toSquare: string;
       moveType: "knight" | "bishop";
     }) => {
-      const game = await getGame(gameId);
+      const auth = getAuthorizedPlayerId(socket, rawPlayerId);
+      if (auth.error || !auth.playerId) {
+        socket.emit("moveError", { message: auth.error });
+        return;
+      }
+      const playerId = auth.playerId;
+      const effectiveGameId = socket.data.gameId || gameId;
+
+      const game = await getGame(effectiveGameId);
       if (!game) { socket.emit("moveError", { message: "Game not found" }); return; }
       if (game.status !== "active") {
         socket.emit("moveError", { message: "Game is not active" });
@@ -300,14 +328,22 @@ export function registerGameSocket(io: SocketServer): void {
 
     socket.on("investigate", async ({
       gameId,
-      playerId,
+      playerId: rawPlayerId,
       suspectSquare,
     }: {
       gameId: string;
       playerId: string;
       suspectSquare: string;
     }) => {
-      const game = await getGame(gameId);
+      const auth = getAuthorizedPlayerId(socket, rawPlayerId);
+      if (auth.error || !auth.playerId) {
+        socket.emit("moveError", { message: auth.error });
+        return;
+      }
+      const playerId = auth.playerId;
+      const effectiveGameId = socket.data.gameId || gameId;
+
+      const game = await getGame(effectiveGameId);
       if (!game) { socket.emit("moveError", { message: "Game not found" }); return; }
       if (game.status !== "active") {
         socket.emit("moveError", { message: "Game is not active" });
@@ -405,14 +441,22 @@ export function registerGameSocket(io: SocketServer): void {
 
     socket.on("selectPenalty", async ({
       gameId,
-      playerId,
+      playerId: rawPlayerId,
       square,
     }: {
       gameId: string;
       playerId: string;
       square: string;
     }) => {
-      const game = await getGame(gameId);
+      const auth = getAuthorizedPlayerId(socket, rawPlayerId);
+      if (auth.error || !auth.playerId) {
+        socket.emit("moveError", { message: auth.error });
+        return;
+      }
+      const playerId = auth.playerId;
+      const effectiveGameId = socket.data.gameId || gameId;
+
+      const game = await getGame(effectiveGameId);
       if (!game) { socket.emit("moveError", { message: "Game not found" }); return; }
       if (game.status !== "active") {
         socket.emit("moveError", { message: "Game is not active" });
@@ -467,8 +511,16 @@ export function registerGameSocket(io: SocketServer): void {
       }
     });
 
-    socket.on("resign", async ({ gameId, playerId }: { gameId: string; playerId: string }) => {
-      const game = await getGame(gameId);
+    socket.on("resign", async ({ gameId, playerId: rawPlayerId }: { gameId: string; playerId: string }) => {
+      const auth = getAuthorizedPlayerId(socket, rawPlayerId);
+      if (auth.error || !auth.playerId) {
+        socket.emit("moveError", { message: auth.error });
+        return;
+      }
+      const playerId = auth.playerId;
+      const effectiveGameId = socket.data.gameId || gameId;
+
+      const game = await getGame(effectiveGameId);
       if (!game || game.status !== "active") return;
 
       const isWhite = playerId === game.whitePlayerId;

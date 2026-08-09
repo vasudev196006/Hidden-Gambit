@@ -10,7 +10,7 @@ import {
   SetImpostorBody,
   GetGameParams,
 } from "@workspace/api-zod";
-import { getGame, saveGame } from "../lib/gameStore";
+import { getGame, saveGame, createGameRecord, listActiveGames } from "../lib/gameStore";
 import { isValidImpostorSelection } from "../lib/gameEngine";
 import { buildGameState } from "../socket/gameSocket";
 import { logger } from "../lib/logger";
@@ -26,20 +26,22 @@ function generatePlayerId(): string {
 }
 
 router.get("/games", async (req, res): Promise<void> => {
-  const games = await db
-    .select()
-    .from(gamesTable)
-    .where(or(eq(gamesTable.status, "waiting"), eq(gamesTable.status, "active")));
+  try {
+    const games = await listActiveGames();
 
-  res.json(
-    games.map((g) => ({
-      id: g.id,
-      status: g.status,
-      whitePlayerName: g.whitePlayerName,
-      blackPlayerName: g.blackPlayerName ?? null,
-      createdAt: g.createdAt.toISOString(),
-    }))
-  );
+    res.json(
+      games.map((g) => ({
+        id: g.id,
+        status: g.status,
+        whitePlayerName: g.whitePlayerName,
+        blackPlayerName: g.blackPlayerName ?? null,
+        createdAt: typeof g.createdAt === "string" ? g.createdAt : g.createdAt.toISOString(),
+      }))
+    );
+  } catch (err: any) {
+    req.log.error(err, "Failed to query games");
+    res.status(500).json({ error: err.message });
+  }
 });
 
 router.post("/games", async (req, res): Promise<void> => {
@@ -52,15 +54,12 @@ router.post("/games", async (req, res): Promise<void> => {
   const gameId = generateId();
   const playerId = generatePlayerId();
 
-  const [game] = await db
-    .insert(gamesTable)
-    .values({
-      id: gameId,
-      whitePlayerId: playerId,
-      whitePlayerName: parsed.data.playerName,
-      status: "waiting",
-    })
-    .returning();
+  const game = await createGameRecord({
+    id: gameId,
+    whitePlayerId: playerId,
+    whitePlayerName: parsed.data.playerName,
+    status: "waiting",
+  });
 
   req.log.info({ gameId, playerId }, "Game created");
 
@@ -85,8 +84,12 @@ router.get("/games/:id", async (req, res): Promise<void> => {
   }
 
   // Accept optional ?playerId query param so the REST response includes myColor
-  const requestingPlayerId = typeof req.query["playerId"] === "string"
+  // Verify requestingPlayerId actually belongs to this game to prevent IDOR data leaks
+  const rawPlayerId = typeof req.query["playerId"] === "string"
     ? req.query["playerId"]
+    : undefined;
+  const requestingPlayerId = (rawPlayerId === game.whitePlayerId || rawPlayerId === game.blackPlayerId)
+    ? rawPlayerId
     : undefined;
 
   res.json(buildGameState(game, requestingPlayerId));

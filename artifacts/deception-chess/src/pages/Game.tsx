@@ -798,14 +798,22 @@ export default function Game() {
 
       {/* Sidebar */}
       <div className="w-full md:w-80 flex flex-col gap-4">
-        <Button
-          variant="ghost"
-          className="self-start text-muted-foreground"
-          onClick={() => setLocation("/")}
-          data-testid="btn-back-lobby"
-        >
-          <ArrowLeft className="mr-2 h-4 w-4" /> Lobby
-        </Button>
+        <div className="flex items-center justify-between">
+          <Button
+            variant="ghost"
+            className="text-muted-foreground"
+            onClick={() => setLocation("/")}
+            data-testid="btn-back-lobby"
+          >
+            <ArrowLeft className="mr-2 h-4 w-4" /> Lobby
+          </Button>
+          <img 
+            src="/chess_logo.png" 
+            alt="Hidden Gambit Logo" 
+            className="h-10 w-auto object-contain cursor-pointer drop-shadow-[0_2px_10px_rgba(220,38,38,0.4)] hover:scale-105 transition-transform"
+            onClick={() => setLocation("/")}
+          />
+        </div>
 
         {/* Players */}
         <Card className="bg-card border-card-border rounded-xl" data-testid="card-intel">

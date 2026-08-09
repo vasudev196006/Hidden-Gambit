@@ -47,7 +47,8 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 # 2. Start API backend server in a new window
-Write-Host "`nStep 2: Starting API server (backend) in a new window on port 5000..." -ForegroundColor Cyan
+Write-Host "`nStep 2: Clearing stale processes & starting API server (backend) on port 5000..." -ForegroundColor Cyan
+Get-NetTCPConnection -LocalPort 5000, 3000 -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue }
 $apiCommand = "`$env:Path = [System.Environment]::GetEnvironmentVariable('Path','Machine') + ';' + [System.Environment]::GetEnvironmentVariable('Path','User') + ';C:\Users\vasudev\AppData\Roaming\npm;C:\Program Files\nodejs'; `$env:DATABASE_URL='$($env:DATABASE_URL)'; `$env:PORT='5000'; `$env:NODE_TLS_REJECT_UNAUTHORIZED='0'; pnpm --filter @workspace/api-server run dev"
 Start-Process powershell -WorkingDirectory $PSScriptRoot -ArgumentList "-NoExit", "-Command", $apiCommand
 

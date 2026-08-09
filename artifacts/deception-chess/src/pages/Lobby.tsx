@@ -64,9 +64,13 @@ export default function Lobby() {
       <div className="max-w-4xl w-full grid grid-cols-1 md:grid-cols-2 gap-8">
         
         <div className="flex flex-col justify-center space-y-6">
-          <div>
-            <h1 className="text-5xl font-mono font-bold text-primary mb-2 uppercase tracking-tighter">Deception<br />Chess</h1>
-            <p className="text-muted-foreground text-lg">A tactical duel of hidden information. Trust no pawn.</p>
+          <div className="flex flex-col items-center md:items-start text-center md:text-left">
+            <img 
+              src="/chess_logo.png" 
+              alt="Hidden Gambit Logo" 
+              className="h-44 md:h-52 w-auto object-contain mb-3 drop-shadow-[0_10px_30px_rgba(220,38,38,0.45)] hover:scale-105 transition-transform duration-300"
+            />
+            <p className="text-muted-foreground text-base max-w-sm">A tactical duel of hidden information. Trust no pawn.</p>
           </div>
 
           <Card className="bg-card border-card-border">
