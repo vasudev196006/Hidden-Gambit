@@ -41,62 +41,67 @@
 
   --font-sans: var(--app-font-sans);
   --font-mono: var(--app-font-mono);
+  --font-display: var(--app-font-display);
+  --font-tech: var(--app-font-tech);
+
   --radius-lg: var(--radius);
   --radius-md: calc(var(--radius) - 2px);
   --radius-sm: calc(var(--radius) - 4px);
 }
 
 :root {
-  /* Enforce Dark Mode Default Theme */
-  --background: 0 0% 4%;
-  --foreground: 0 0% 95%;
-  --card: 0 0% 7%;
+  /* Dark Gothic Tactical Chess Color Tokens */
+  --background: 0 0% 2%;
+  --foreground: 0 0% 92%;
+  --card: 0 0% 5%;
   --card-foreground: 0 0% 95%;
-  --card-border: 0 0% 12%;
-  --popover: 0 0% 7%;
+  --card-border: 0 0% 14%;
+  --popover: 0 0% 6%;
   --popover-foreground: 0 0% 95%;
-  --popover-border: 0 0% 12%;
-  --primary: 350 80% 45%;
+  --popover-border: 0 0% 16%;
+  --primary: 354 85% 44%;
   --primary-foreground: 0 0% 100%;
-  --secondary: 0 0% 15%;
-  --secondary-foreground: 0 0% 95%;
+  --secondary: 0 0% 10%;
+  --secondary-foreground: 0 0% 90%;
   --muted: 0 0% 12%;
-  --muted-foreground: 0 0% 65%;
-  --accent: 350 80% 45%;
+  --muted-foreground: 0 0% 60%;
+  --accent: 354 85% 44%;
   --accent-foreground: 0 0% 100%;
   --destructive: 0 84% 60%;
   --destructive-foreground: 0 0% 100%;
-  --border: 0 0% 15%;
-  --input: 0 0% 15%;
-  --ring: 350 80% 45%;
+  --border: 0 0% 14%;
+  --input: 0 0% 14%;
+  --ring: 354 85% 44%;
 
   --app-font-sans: "Inter", sans-serif;
-  --app-font-mono: "Space Mono", monospace;
-  --radius: 0.25rem;
+  --app-font-mono: "Rajdhani", monospace;
+  --app-font-display: "Cinzel", serif;
+  --app-font-tech: "Rajdhani", sans-serif;
+  --radius: 0.15rem;
 }
 
 .dark {
-  --background: 0 0% 4%;
-  --foreground: 0 0% 95%;
-  --card: 0 0% 7%;
+  --background: 0 0% 2%;
+  --foreground: 0 0% 92%;
+  --card: 0 0% 5%;
   --card-foreground: 0 0% 95%;
-  --card-border: 0 0% 12%;
-  --popover: 0 0% 7%;
+  --card-border: 0 0% 14%;
+  --popover: 0 0% 6%;
   --popover-foreground: 0 0% 95%;
-  --popover-border: 0 0% 12%;
-  --primary: 350 80% 45%;
+  --popover-border: 0 0% 16%;
+  --primary: 354 85% 44%;
   --primary-foreground: 0 0% 100%;
-  --secondary: 0 0% 15%;
-  --secondary-foreground: 0 0% 95%;
+  --secondary: 0 0% 10%;
+  --secondary-foreground: 0 0% 90%;
   --muted: 0 0% 12%;
-  --muted-foreground: 0 0% 65%;
-  --accent: 350 80% 45%;
+  --muted-foreground: 0 0% 60%;
+  --accent: 354 85% 44%;
   --accent-foreground: 0 0% 100%;
   --destructive: 0 84% 60%;
   --destructive-foreground: 0 0% 100%;
-  --border: 0 0% 15%;
-  --input: 0 0% 15%;
-  --ring: 350 80% 45%;
+  --border: 0 0% 14%;
+  --input: 0 0% 14%;
+  --ring: 354 85% 44%;
 }
 
 @layer base {
@@ -104,6 +109,124 @@
     @apply border-border;
   }
   body {
-    @apply font-sans antialiased bg-background text-foreground;
+    @apply font-sans antialiased bg-[#050505] text-foreground select-none overflow-x-hidden;
+    background-color: #050505;
   }
 }
+
+/* Custom Launcher Fonts */
+.font-display {
+  font-family: var(--app-font-display), "Cinzel", serif;
+}
+
+.font-tech {
+  font-family: var(--app-font-tech), "Rajdhani", sans-serif;
+}
+
+/* Custom Extruded Title Typographies */
+.title-hidden-style {
+  font-family: var(--app-font-display), "Cinzel", serif;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  color: #e5e7eb;
+  background: linear-gradient(180deg, #ffffff 0%, #d1d5db 45%, #9ca3af 70%, #4b5563 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 4px 0px #09090b) drop-shadow(0 8px 12px rgba(0, 0, 0, 0.9));
+}
+
+.title-gambit-style {
+  font-family: var(--app-font-display), "Cinzel", serif;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  background: linear-gradient(180deg, #ff3b30 0%, #dc2626 40%, #991b1b 75%, #450a0a 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 4px 0px #2a0404) drop-shadow(0 8px 16px rgba(153, 27, 27, 0.8)) drop-shadow(0 0 25px rgba(220, 38, 38, 0.4));
+}
+
+/* Chamfer polygon shapes */
+.clip-chamfer-btn {
+  clip-path: polygon(14px 0, calc(100% - 14px) 0, 100% 14px, 100% calc(100% - 14px), calc(100% - 14px) 100%, 14px 100%, 0 calc(100% - 14px), 0 14px);
+}
+
+.clip-play-btn {
+  clip-path: polygon(22px 0, calc(100% - 22px) 0, 100% 22px, 100% calc(100% - 22px), calc(100% - 22px) 100%, 22px 100%, 0 calc(100% - 22px), 0 22px);
+}
+
+.clip-chamfer-panel {
+  clip-path: polygon(10px 0, calc(100% - 10px) 0, 100% 10px, 100% calc(100% - 10px), calc(100% - 10px) 100%, 10px 100%, 0 calc(100% - 10px), 0 10px);
+}
+
+.clip-chamfer-sm {
+  clip-path: polygon(6px 0, calc(100% - 6px) 0, 100% 6px, 100% calc(100% - 6px), calc(100% - 6px) 100%, 6px 100%, 0 calc(100% - 6px), 0 6px);
+}
+
+/* Red illuminated glows & metallic surfaces */
+.red-glow-box {
+  box-shadow: 0 0 20px rgba(220, 38, 38, 0.35), inset 0 0 15px rgba(220, 38, 38, 0.2);
+}
+
+.red-glow-subtle {
+  box-shadow: 0 0 12px rgba(220, 38, 38, 0.2);
+}
+
+.red-glow-intense {
+  box-shadow: 0 0 35px rgba(239, 68, 68, 0.6), inset 0 0 25px rgba(220, 38, 38, 0.4);
+}
+
+.bg-metallic-dark {
+  background: linear-gradient(180deg, rgba(20, 20, 24, 0.85) 0%, rgba(10, 10, 12, 0.92) 100%);
+}
+
+.bg-play-surface {
+  background: linear-gradient(180deg, #990505 0%, #660000 45%, #400000 80%, #200000 100%);
+}
+
+.bg-play-surface-hover {
+  background: linear-gradient(180deg, #b90606 0%, #800000 45%, #500000 80%, #280000 100%);
+}
+
+.bg-metallic-red {
+  background: linear-gradient(180deg, #b91c1c 0%, #881337 45%, #450a0a 100%);
+}
+
+.bg-metallic-red-hover {
+  background: linear-gradient(180deg, #dc2626 0%, #9f1239 45%, #581c87 100%);
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #09090b;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #27272a;
+  border-radius: 2px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #dc2626;
+}
+
+/* Pulse animation for active navigation and glowing piece eyes */
+@keyframes redPulse {
+  0%, 100% {
+    opacity: 0.8;
+    filter: drop-shadow(0 0 8px rgba(239, 68, 68, 0.8));
+  }
+  50% {
+    opacity: 1;
+    filter: drop-shadow(0 0 16px rgba(239, 68, 68, 1));
+  }
+}
+
+.animate-red-pulse {
+  animation: redPulse 3s infinite ease-in-out;
+}
+
