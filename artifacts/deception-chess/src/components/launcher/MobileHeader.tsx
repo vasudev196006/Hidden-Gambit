@@ -15,7 +15,7 @@ export const MobileHeader: React.FC<MobileHeaderProps> = ({
 }) => {
   const [drawerOpen, setDrawerOpen] = useState(false);
 
-  const tabs: NavTab[] = ["LOBBY", "PLAY", "LOADOUT", "STORE", "SETTINGS"];
+  const tabs: NavTab[] = ["PLAY"];
 
   return (
     <>

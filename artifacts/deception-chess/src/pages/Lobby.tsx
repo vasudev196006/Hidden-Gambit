@@ -9,32 +9,19 @@ import { MobileHeader } from "@/components/launcher/MobileHeader";
 import { MobileNav } from "@/components/launcher/MobileNav";
 
 import { LobbyViewModal } from "@/components/launcher/LobbyViewModal";
-import { LoadoutViewModal } from "@/components/launcher/LoadoutViewModal";
-import { StoreViewModal } from "@/components/launcher/StoreViewModal";
-import { SettingsViewModal } from "@/components/launcher/SettingsViewModal";
 import { ProfileDossierModal } from "@/components/launcher/ProfileDossierModal";
 
 export default function Lobby() {
-  // Default tab is LOBBY (hero/home screen)
-  const [activeTab, setActiveTab] = useState<NavTab>("LOBBY");
-  const [activeModal, setActiveModal] = useState<"PLAY" | "LOADOUT" | "STORE" | "SETTINGS" | "PROFILE" | null>(null);
+  const [activeTab, setActiveTab] = useState<NavTab>("PLAY");
+  const [activeModal, setActiveModal] = useState<"PLAY" | "PROFILE" | null>(null);
 
   const handleSelectTab = (tab: NavTab) => {
     setActiveTab(tab);
-    if (tab === "LOBBY") {
-      // LOBBY = home screen, no modal
-      setActiveModal(null);
-    } else if (tab === "PLAY") {
-      // PLAY = open the game lobby modal
-      setActiveModal("PLAY");
-    } else {
-      setActiveModal(tab);
-    }
+    setActiveModal("PLAY");
   };
 
   const handleCloseModal = () => {
     setActiveModal(null);
-    setActiveTab("LOBBY");
   };
 
   return (
@@ -86,9 +73,6 @@ export default function Lobby() {
 
       {/* ACTIVE MODALS & OVERLAYS */}
       {activeModal === "PLAY" && <LobbyViewModal onClose={handleCloseModal} />}
-      {activeModal === "LOADOUT" && <LoadoutViewModal onClose={handleCloseModal} />}
-      {activeModal === "STORE" && <StoreViewModal onClose={handleCloseModal} />}
-      {activeModal === "SETTINGS" && <SettingsViewModal onClose={handleCloseModal} />}
       {activeModal === "PROFILE" && <ProfileDossierModal onClose={handleCloseModal} />}
     </div>
   );

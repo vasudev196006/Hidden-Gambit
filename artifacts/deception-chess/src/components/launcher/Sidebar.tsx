@@ -1,8 +1,8 @@
 import React from "react";
-import { Swords, Users, Shield, ShoppingCart, Settings } from "lucide-react";
+import { Swords } from "lucide-react";
 import { FaDiscord, FaXTwitter, FaGithub } from "react-icons/fa6";
 
-export type NavTab = "LOBBY" | "PLAY" | "LOADOUT" | "STORE" | "SETTINGS";
+export type NavTab = "PLAY";
 
 interface SidebarProps {
   activeTab: NavTab;
@@ -17,10 +17,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const navItems: { id: NavTab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
     { id: "PLAY", label: "PLAY", icon: Swords },
-    { id: "LOBBY", label: "LOBBY", icon: Users },
-    { id: "LOADOUT", label: "LOADOUT", icon: Shield },
-    { id: "STORE", label: "STORE", icon: ShoppingCart },
-    { id: "SETTINGS", label: "SETTINGS", icon: Settings },
   ];
 
   return (
