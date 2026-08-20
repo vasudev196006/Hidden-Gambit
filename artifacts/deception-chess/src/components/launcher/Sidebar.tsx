@@ -64,91 +64,36 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </nav>
       </div>
 
-      {/* Bottom Section: Profile Panel & Community Socials */}
+      {/* Bottom Section: Community Socials */}
       <div className="flex flex-col space-y-4 pt-3 border-t border-neutral-800/40">
-        {/* PLAYER Label */}
-        <div className="flex flex-col space-y-2">
-          <span className="text-[11px] font-tech font-bold uppercase tracking-widest text-red-600">
-            PLAYER
-          </span>
-
-          {/* Player Profile Card */}
-          <div
-            onClick={onOpenProfile}
-            className="bg-[#0c0c10] border border-neutral-800/80 hover:border-red-900/50 rounded-md p-3 flex flex-col space-y-2.5 cursor-pointer transition-colors group"
-          >
-            <div className="flex items-center space-x-3">
-              {/* Knight Helmet Avatar Box */}
-              <div className="relative w-11 h-11 shrink-0 bg-gradient-to-b from-red-950/80 to-black border border-red-700/60 rounded clip-chamfer-sm flex items-center justify-center shadow-inner group-hover:border-red-500 transition-colors">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.8"
-                  className="w-6 h-6 text-red-500 drop-shadow-[0_0_6px_rgba(239,68,68,0.7)]"
-                >
-                  <path d="M12 2C7 2 4 6 4 11v4c0 3 2.5 6 8 7 5.5-1 8-4 8-7v-4c0-5-3-9-8-9z" />
-                  <path d="M8 10h8" strokeWidth="2" strokeLinecap="round" />
-                  <path d="M12 10v7" strokeWidth="1.5" />
-                  <circle cx="10" cy="8" r="1" fill="currentColor" />
-                  <circle cx="14" cy="8" r="1" fill="currentColor" />
-                </svg>
-              </div>
-
-              {/* Username & Level */}
-              <div className="flex-1 min-w-0">
-                <div className="font-tech font-bold text-sm text-neutral-100 truncate group-hover:text-red-400 transition-colors">
-                  GAMBIT_KNIGHT
-                </div>
-                <div className="text-[11px] font-tech text-neutral-500">
-                  Level 24
-                </div>
-              </div>
-            </div>
-
-            {/* Horizontal XP Progress Bar */}
-            <div className="w-full h-1.5 bg-neutral-900 rounded-full overflow-hidden border border-white/5">
-              <div
-                className="h-full bg-gradient-to-r from-red-800 to-red-500 rounded-full shadow-[0_0_8px_rgba(239,68,68,0.8)]"
-                style={{ width: "65.4%" }}
-              />
-            </div>
-
-            {/* XP text */}
-            <div className="text-[10px] font-mono text-center text-neutral-500 pt-0.5">
-              <span className="text-red-500 font-bold">7,850</span> / 12,000 XP
-            </div>
-          </div>
-        </div>
-
         {/* Community Social Links */}
-        <div className="flex items-center space-x-4 pt-1 px-1 text-neutral-500">
+        <div className="flex items-center justify-around px-1 text-neutral-400">
           <a
             href="https://discord.com"
             target="_blank"
             rel="noreferrer"
             aria-label="Discord"
-            className="hover:text-red-500 transition-colors p-1"
+            className="hover:text-red-500 transition-colors p-1.5"
           >
-            <FaDiscord className="w-4 h-4" />
+            <FaDiscord className="w-5 h-5" />
           </a>
           <a
             href="https://x.com"
             target="_blank"
             rel="noreferrer"
             aria-label="Twitter X"
-            className="hover:text-red-500 transition-colors p-1"
+            className="hover:text-red-500 transition-colors p-1.5"
           >
-            <FaXTwitter className="w-4 h-4" />
+            <FaXTwitter className="w-5 h-5" />
           </a>
           <a
             href="https://github.com"
             target="_blank"
             rel="noreferrer"
             aria-label="GitHub"
-            className="hover:text-red-500 transition-colors p-1"
+            className="hover:text-red-500 transition-colors p-1.5"
           >
-            <FaGithub className="w-4 h-4" />
+            <FaGithub className="w-5 h-5" />
           </a>
         </div>
       </div>

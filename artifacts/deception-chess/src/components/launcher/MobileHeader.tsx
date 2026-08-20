@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Menu, Bell, X } from "lucide-react";
+import { FaDiscord, FaXTwitter, FaGithub } from "react-icons/fa6";
 import { NavTab } from "./Sidebar";
 
 interface MobileHeaderProps {
@@ -11,7 +12,6 @@ interface MobileHeaderProps {
 export const MobileHeader: React.FC<MobileHeaderProps> = ({
   activeTab,
   onSelectTab,
-  onOpenProfile,
 }) => {
   const [drawerOpen, setDrawerOpen] = useState(false);
 
@@ -20,18 +20,50 @@ export const MobileHeader: React.FC<MobileHeaderProps> = ({
   return (
     <>
       <header className="w-full h-14 bg-[#08080a]/95 border-b border-neutral-800/60 px-4 flex items-center justify-between z-30 sticky top-0 backdrop-blur-md select-none">
-        {/* Left: Hamburger Menu */}
-        <button
-          onClick={() => setDrawerOpen(true)}
-          className="p-2 text-neutral-300 hover:text-white rounded transition-colors"
-          aria-label="Open menu"
-        >
-          <Menu className="w-6 h-6 text-neutral-300" />
-        </button>
+        {/* Left: Hamburger Menu & Social Icons */}
+        <div className="flex items-center space-x-1">
+          <button
+            onClick={() => setDrawerOpen(true)}
+            className="p-1.5 text-neutral-300 hover:text-white rounded transition-colors"
+            aria-label="Open menu"
+          >
+            <Menu className="w-6 h-6 text-neutral-300" />
+          </button>
+
+          {/* Social Icons right next to 3-bar menu button */}
+          <div className="flex items-center space-x-1 pl-1 text-neutral-400">
+            <a
+              href="https://discord.com"
+              target="_blank"
+              rel="noreferrer"
+              aria-label="Discord"
+              className="hover:text-red-500 transition-colors p-1"
+            >
+              <FaDiscord className="w-4 h-4" />
+            </a>
+            <a
+              href="https://x.com"
+              target="_blank"
+              rel="noreferrer"
+              aria-label="Twitter X"
+              className="hover:text-red-500 transition-colors p-1"
+            >
+              <FaXTwitter className="w-4 h-4" />
+            </a>
+            <a
+              href="https://github.com"
+              target="_blank"
+              rel="noreferrer"
+              aria-label="GitHub"
+              className="hover:text-red-500 transition-colors p-1"
+            >
+              <FaGithub className="w-4 h-4" />
+            </a>
+          </div>
+        </div>
 
         {/* Right: Notifications */}
         <div className="flex items-center space-x-3">
-          {/* Notification icon */}
           <button className="p-1.5 relative text-neutral-300 hover:text-white">
             <Bell className="w-5 h-5" />
             <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-600 rounded-full shadow-[0_0_4px_#ef4444]" />
@@ -76,26 +108,6 @@ export const MobileHeader: React.FC<MobileHeaderProps> = ({
                   {tab}
                 </button>
               ))}
-            </div>
-
-            {/* Profile Drawer Card */}
-            <div
-              onClick={() => {
-                if (onOpenProfile) onOpenProfile();
-                setDrawerOpen(false);
-              }}
-              className="bg-[#0c0c10] border border-neutral-800 p-3 rounded-md flex items-center justify-between"
-            >
-              <div className="flex items-center space-x-3">
-                <div className="w-9 h-9 bg-red-950 border border-red-600/60 rounded flex items-center justify-center text-red-500 font-bold text-xs">
-                  KG
-                </div>
-                <div>
-                  <div className="font-tech font-bold text-sm text-neutral-100">GAMBIT_KNIGHT</div>
-                  <div className="text-[10px] font-mono text-neutral-400">Level 24 • 7,850 XP</div>
-                </div>
-              </div>
-              <span className="text-xs font-tech text-red-500 font-bold uppercase">View Profile</span>
             </div>
           </div>
         </div>
