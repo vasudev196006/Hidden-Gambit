@@ -3,9 +3,9 @@ import React from "react";
 export const HeroSection: React.FC = () => {
   return (
     <div
-      className="absolute z-20 select-none flex flex-col items-center"
+      className="absolute z-20 select-none flex flex-col items-center pointer-events-none"
       style={{
-        top: "57%",
+        top: "15%",
         left: "50%",
         transform: "translate(-50%, -50%)",
       }}
