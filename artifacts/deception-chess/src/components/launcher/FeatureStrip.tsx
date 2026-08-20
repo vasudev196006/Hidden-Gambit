@@ -2,7 +2,7 @@ import React from "react";
 
 export const FeatureStrip: React.FC = () => {
   return (
-    <div className="w-full max-w-4xl mx-auto z-20 px-4 mb-4 select-none">
+    <div className="hidden md:block w-full max-w-4xl mx-auto z-20 px-4 mb-4 select-none">
       <div className="bg-[#08080c]/90 backdrop-blur-md border border-neutral-800/60 rounded-md p-3.5 sm:p-4 grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-0 divide-y md:divide-y-0 md:divide-x divide-neutral-800/60 shadow-2xl">
         {/* Item 1: CLASSIC GAMEPLAY */}
         <div className="flex items-center space-x-3.5 md:pr-4">
