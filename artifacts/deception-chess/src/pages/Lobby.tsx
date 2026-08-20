@@ -70,8 +70,8 @@ export default function Lobby() {
           <TopHUD onOpenProfile={() => setActiveModal("PROFILE")} />
         </div>
 
-        {/* Hero Section: text.png + tagline */}
-        <HeroSection />
+        {/* Hero Section: text.png + tagline + create game button */}
+        <HeroSection onPlayClick={() => handleSelectTab("PLAY")} />
 
         {/* Bottom Feature Strip */}
         <div className="w-full z-30">

@@ -9,8 +9,8 @@ interface MobileNavProps {
 
 export const MobileNav: React.FC<MobileNavProps> = ({ activeTab, onSelectTab }) => {
   const navItems: { id: NavTab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
-    { id: "LOBBY", label: "LOBBY", icon: Users },
     { id: "PLAY", label: "PLAY", icon: Swords },
+    { id: "LOBBY", label: "LOBBY", icon: Users },
     { id: "LOADOUT", label: "LOADOUT", icon: Shield },
     { id: "STORE", label: "STORE", icon: ShoppingCart },
     { id: "SETTINGS", label: "SETTINGS", icon: Settings },
@@ -21,6 +21,24 @@ export const MobileNav: React.FC<MobileNavProps> = ({ activeTab, onSelectTab }) 
       {navItems.map((item) => {
         const Icon = item.icon;
         const isActive = activeTab === item.id;
+        const isPlayButton = item.id === "PLAY";
+
+        if (isPlayButton) {
+          return (
+            <button
+              key={item.id}
+              onClick={() => onSelectTab("PLAY")}
+              className="relative -translate-y-3 flex flex-col items-center justify-center group"
+            >
+              <div className="w-12 h-12 rounded-full bg-gradient-to-b from-red-600 via-red-700 to-red-950 border-2 border-red-500/80 shadow-[0_0_20px_rgba(239,68,68,0.8)] flex items-center justify-center group-hover:scale-110 group-active:scale-95 transition-transform duration-200">
+                <Swords className="w-6 h-6 text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.8)]" />
+              </div>
+              <span className="text-[10px] font-tech font-extrabold uppercase tracking-widest text-red-500 mt-0.5 drop-shadow-[0_0_6px_rgba(239,68,68,0.8)]">
+                PLAY
+              </span>
+            </button>
+          );
+        }
 
         return (
           <button

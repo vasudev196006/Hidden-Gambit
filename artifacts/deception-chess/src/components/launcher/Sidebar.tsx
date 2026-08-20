@@ -16,8 +16,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onOpenProfile,
 }) => {
   const navItems: { id: NavTab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
-    { id: "LOBBY", label: "LOBBY", icon: Users },
     { id: "PLAY", label: "PLAY", icon: Swords },
+    { id: "LOBBY", label: "LOBBY", icon: Users },
     { id: "LOADOUT", label: "LOADOUT", icon: Shield },
     { id: "STORE", label: "STORE", icon: ShoppingCart },
     { id: "SETTINGS", label: "SETTINGS", icon: Settings },
