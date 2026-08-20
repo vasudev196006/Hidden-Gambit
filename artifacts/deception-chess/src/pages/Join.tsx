@@ -16,7 +16,7 @@ export default function Join() {
 
   const handleJoin = () => {
     if (!playerName.trim()) {
-      toast({ title: "Operative name required", variant: "destructive" });
+      toast({ title: "Player name required", variant: "destructive" });
       return;
     }
     if (!id) return;
@@ -42,23 +42,23 @@ export default function Join() {
       <div className="max-w-sm w-full space-y-6">
         <div className="text-center flex flex-col items-center">
           <img 
-            src="/chess_logo.png" 
+            src="/logo_transparent.png" 
             alt="Hidden Gambit Logo" 
-            className="h-36 w-auto object-contain mb-3 drop-shadow-[0_10px_25px_rgba(220,38,38,0.45)] hover:scale-105 transition-transform duration-300"
+            className="h-36 w-auto object-contain mb-3 hover:scale-105 transition-transform duration-300"
           />
-          <p className="text-muted-foreground">You've been invited to an operation.</p>
+          <p className="text-muted-foreground">You've been invited to a chess match.</p>
         </div>
 
         <Card className="bg-card border-card-border">
           <CardHeader>
-            <CardTitle className="font-mono">Join Operation</CardTitle>
+            <CardTitle className="font-mono">Join Match</CardTitle>
             <CardDescription>
               Code: <span className="font-mono text-primary">{id}</span>
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">Operative Name</label>
+              <label className="text-sm font-medium text-foreground">Player Name</label>
               <Input
                 placeholder="Enter your name..."
                 value={playerName}
@@ -78,7 +78,7 @@ export default function Join() {
               ) : (
                 <LogIn className="mr-2 h-4 w-4" />
               )}
-              Accept Mission
+              Join Game
             </Button>
           </CardContent>
         </Card>

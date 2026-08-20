@@ -83,7 +83,7 @@ export const LobbyViewModal: React.FC<LobbyViewModalProps> = ({ onClose }) => {
 
         {/* Modal Body */}
         <div className="p-5 flex-1 overflow-y-auto space-y-6">
-          {/* Create Operation Section */}
+          {/* Create Match Section */}
           <div className="bg-[#0e0e14]/80 border border-red-950/40 p-4 rounded clip-chamfer-sm flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex-1 w-full space-y-1">
               <label className="text-xs font-tech font-semibold text-red-400 uppercase tracking-wider">

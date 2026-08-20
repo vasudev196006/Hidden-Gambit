@@ -14,7 +14,7 @@ export const ProfileDossierModal: React.FC<ProfileDossierModalProps> = ({ onClos
           <div className="flex items-center space-x-2">
             <User className="w-5 h-5 text-red-500" />
             <h2 className="font-tech font-bold text-lg text-neutral-100 uppercase tracking-widest">
-              OPERATIVE DOSSIER
+              PLAYER PROFILE
             </h2>
           </div>
           <button
@@ -41,7 +41,7 @@ export const ProfileDossierModal: React.FC<ProfileDossierModalProps> = ({ onClos
               <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-3">
                 <h3 className="font-tech font-bold text-xl text-neutral-100">GAMBIT_KNIGHT</h3>
                 <span className="text-[10px] font-tech font-bold bg-red-950 border border-red-600 text-red-400 px-2 py-0.5 rounded uppercase self-center sm:self-auto mt-1 sm:mt-0">
-                  RANK: GRAND OPERATIVE
+                  RANK: GRANDMASTER
                 </span>
               </div>
               <p className="text-xs font-mono text-neutral-400">Clearance Level 24 • Specialization: Sleeper Tactics</p>
@@ -59,12 +59,12 @@ export const ProfileDossierModal: React.FC<ProfileDossierModalProps> = ({ onClos
             </div>
           </div>
 
-          {/* Dossier Tactical Metrics */}
+          {/* Profile Metrics */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div className="bg-[#0e0e14]/80 p-3 rounded border border-red-950/40 text-center">
               <Trophy className="w-5 h-5 text-amber-500 mx-auto mb-1" />
               <div className="font-tech font-bold text-lg text-neutral-100">142</div>
-              <div className="text-[10px] font-tech text-neutral-400 uppercase">OPERATIONS WON</div>
+              <div className="text-[10px] font-tech text-neutral-400 uppercase">GAMES WON</div>
             </div>
 
             <div className="bg-[#0e0e14]/80 p-3 rounded border border-red-950/40 text-center">

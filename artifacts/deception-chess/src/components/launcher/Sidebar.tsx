@@ -30,9 +30,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {/* Sidebar Logo Container */}
         <div className="flex flex-col items-center justify-center pt-2 pb-1">
           <img
-            src="/oglogo.png"
+            src="/logo_transparent.png"
             alt="Hidden Gambit"
-            className="h-28 w-auto object-contain drop-shadow-[0_4px_16px_rgba(220,38,38,0.3)] hover:scale-105 transition-transform duration-300 cursor-pointer"
+            className="h-28 w-auto object-contain hover:scale-105 transition-transform duration-300 cursor-pointer"
             onClick={() => onSelectTab("LOBBY")}
           />
         </div>
@@ -76,7 +76,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             PLAYER
           </span>
 
-          {/* Player Dossier Card */}
+          {/* Player Profile Card */}
           <div
             onClick={onOpenProfile}
             className="bg-[#0c0c10] border border-neutral-800/80 hover:border-red-900/50 rounded-md p-3 flex flex-col space-y-2.5 cursor-pointer transition-colors group"

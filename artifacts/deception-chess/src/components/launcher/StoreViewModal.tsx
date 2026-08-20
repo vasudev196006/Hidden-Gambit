@@ -1,5 +1,5 @@
 import React from "react";
-import { X, ShoppingCart, Gem, Coins } from "lucide-react";
+import { X, ShoppingCart } from "lucide-react";
 
 interface StoreViewModalProps {
   onClose: () => void;
@@ -11,7 +11,7 @@ export const StoreViewModal: React.FC<StoreViewModalProps> = ({ onClose }) => {
       id: "board_cracked",
       name: "CRACKED OBSIDIAN BOARD",
       category: "CHESSBOARD THEME",
-      priceGems: 450,
+      status: "UNLOCKED",
       imageIcon: "♟️",
       featured: true,
     },
@@ -19,7 +19,7 @@ export const StoreViewModal: React.FC<StoreViewModalProps> = ({ onClose }) => {
       id: "trail_ember",
       name: "VOLCANIC EMBER TRAIL",
       category: "PIECE ANIMATION",
-      priceCoins: 12500,
+      status: "AVAILABLE",
       imageIcon: "🔥",
       featured: false,
     },
@@ -27,7 +27,7 @@ export const StoreViewModal: React.FC<StoreViewModalProps> = ({ onClose }) => {
       id: "emote_checkmate",
       name: "DEVILISH KNIGHT EMOTE",
       category: "TACTICAL EMOTE",
-      priceGems: 200,
+      status: "AVAILABLE",
       imageIcon: "⚔️",
       featured: false,
     },
@@ -35,7 +35,7 @@ export const StoreViewModal: React.FC<StoreViewModalProps> = ({ onClose }) => {
       id: "sound_gothic",
       name: "DARK SANCTUARY SFX PACK",
       category: "AUDIO THEME",
-      priceCoins: 8000,
+      status: "AVAILABLE",
       imageIcon: "🔔",
       featured: false,
     },
@@ -49,25 +49,15 @@ export const StoreViewModal: React.FC<StoreViewModalProps> = ({ onClose }) => {
           <div className="flex items-center space-x-2">
             <ShoppingCart className="w-5 h-5 text-red-500" />
             <h2 className="font-tech font-bold text-lg text-neutral-100 uppercase tracking-widest">
-              BLACK MARKET ARMORY STORE
+              CHESS COSMETICS STORE
             </h2>
           </div>
-          <div className="flex items-center space-x-4">
-            <div className="flex items-center space-x-1.5 text-xs font-tech text-neutral-200">
-              <Gem className="w-4 h-4 text-red-500 fill-red-500/30" />
-              <span>1,250</span>
-            </div>
-            <div className="flex items-center space-x-1.5 text-xs font-tech text-neutral-200">
-              <Coins className="w-4 h-4 text-amber-500 fill-amber-500/30" />
-              <span>24,680</span>
-            </div>
-            <button
-              onClick={onClose}
-              className="p-1.5 text-neutral-400 hover:text-white hover:bg-red-950/40 rounded transition-colors ml-2"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          </div>
+          <button
+            onClick={onClose}
+            className="p-1.5 text-neutral-400 hover:text-white hover:bg-red-950/40 rounded transition-colors ml-2"
+          >
+            <X className="w-5 h-5" />
+          </button>
         </div>
 
         {/* Content */}
@@ -89,20 +79,12 @@ export const StoreViewModal: React.FC<StoreViewModalProps> = ({ onClose }) => {
                     {item.name}
                   </h4>
                   <div className="mt-2 flex items-center justify-between">
-                    {item.priceGems ? (
-                      <span className="flex items-center space-x-1 text-xs font-tech font-bold text-red-400">
-                        <Gem className="w-3.5 h-3.5 fill-red-500/40" />
-                        <span>{item.priceGems} Gems</span>
-                      </span>
-                    ) : (
-                      <span className="flex items-center space-x-1 text-xs font-tech font-bold text-amber-400">
-                        <Coins className="w-3.5 h-3.5 fill-amber-500/40" />
-                        <span>{item.priceCoins?.toLocaleString()} Gold</span>
-                      </span>
-                    )}
+                    <span className="text-xs font-tech font-bold text-neutral-400 uppercase">
+                      {item.status}
+                    </span>
 
                     <button className="px-3 py-1 bg-metallic-red hover:bg-metallic-red-hover text-white font-tech font-bold text-xs uppercase rounded clip-chamfer-sm border border-red-500/60 transition-transform active:scale-95">
-                      PURCHASE
+                      EQUIP
                     </button>
                   </div>
                 </div>

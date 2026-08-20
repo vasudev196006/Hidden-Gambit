@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Bell, ChevronDown, Gem, Coins, User, Volume2, ShieldAlert, LogOut } from "lucide-react";
+import { Bell, ChevronDown, User, Volume2, ShieldAlert, LogOut } from "lucide-react";
 
 interface TopHUDProps {
   onOpenNotifications?: () => void;
@@ -12,28 +12,12 @@ export const TopHUD: React.FC<TopHUDProps> = ({ onOpenProfile }) => {
 
   const notifications = [
     { id: 1, title: "Sleeper Agent Unlocked", time: "10m ago", read: false },
-    { id: 2, title: "Season Operation Live", time: "2h ago", read: false },
-    { id: 3, title: "Tactical Victory +150 Gems", time: "1d ago", read: true },
+    { id: 2, title: "Season Tournament Live", time: "2h ago", read: false },
+    { id: 3, title: "Tactical Chess Victory", time: "1d ago", read: true },
   ];
 
   return (
     <div className="absolute top-5 right-6 z-30 flex items-center space-x-3 select-none">
-      {/* Red Gems Indicator */}
-      <div className="flex items-center space-x-2 bg-[#0a0a0e]/90 border border-neutral-800/80 px-3 py-1.5 rounded-full shadow-md">
-        <Gem className="w-4 h-4 text-red-500 fill-red-500/30 drop-shadow-[0_0_6px_rgba(239,68,68,0.8)]" />
-        <span className="font-tech font-bold text-xs tracking-wider text-neutral-100">
-          1,250
-        </span>
-      </div>
-
-      {/* Gold Coins Indicator */}
-      <div className="flex items-center space-x-2 bg-[#0a0a0e]/90 border border-neutral-800/80 px-3 py-1.5 rounded-full shadow-md">
-        <Coins className="w-4 h-4 text-amber-500 fill-amber-500/30 drop-shadow-[0_0_6px_rgba(245,158,11,0.8)]" />
-        <span className="font-tech font-bold text-xs tracking-wider text-neutral-100">
-          24,680
-        </span>
-      </div>
-
       {/* Notification Bell */}
       <div className="relative">
         <button
@@ -53,7 +37,7 @@ export const TopHUD: React.FC<TopHUDProps> = ({ onOpenProfile }) => {
           <div className="absolute right-0 mt-2 w-72 bg-[#0d0d12]/95 border border-red-900/50 rounded shadow-2xl p-3 z-50 animate-in fade-in zoom-in-95 duration-150 backdrop-blur-md">
             <div className="flex items-center justify-between pb-2 border-b border-neutral-800">
               <span className="font-tech font-bold text-xs uppercase tracking-wider text-red-500 flex items-center">
-                <ShieldAlert className="w-3.5 h-3.5 mr-1.5" /> Intelligence Feeds
+                <ShieldAlert className="w-3.5 h-3.5 mr-1.5" /> Notifications & Updates
               </span>
               <span className="text-[10px] font-mono text-neutral-500">3 New</span>
             </div>
@@ -98,7 +82,7 @@ export const TopHUD: React.FC<TopHUDProps> = ({ onOpenProfile }) => {
           <div className="absolute right-0 mt-2 w-56 bg-[#0d0d12]/95 border border-red-900/50 rounded shadow-2xl p-2 z-50 animate-in fade-in zoom-in-95 duration-150 backdrop-blur-md">
             <div className="p-2 border-b border-neutral-800">
               <div className="font-tech font-bold text-sm text-neutral-100">GAMBIT_KNIGHT</div>
-              <div className="text-[10px] font-mono text-red-500">Status: Operative Active</div>
+              <div className="text-[10px] font-mono text-red-500">Status: Active</div>
             </div>
             <div className="flex flex-col space-y-1 mt-1">
               <button
@@ -108,7 +92,7 @@ export const TopHUD: React.FC<TopHUDProps> = ({ onOpenProfile }) => {
                 }}
                 className="w-full text-left px-2 py-1.5 rounded hover:bg-red-950/40 text-xs font-tech text-neutral-300 hover:text-white flex items-center"
               >
-                <User className="w-3.5 h-3.5 mr-2 text-red-500" /> View Dossier
+                <User className="w-3.5 h-3.5 mr-2 text-red-500" /> View Profile
               </button>
               <button
                 onClick={() => setShowUserDropdown(false)}

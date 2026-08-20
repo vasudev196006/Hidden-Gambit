@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Menu, Bell, Gem, X } from "lucide-react";
+import { Menu, Bell, X } from "lucide-react";
 import { NavTab } from "./Sidebar";
 
 interface MobileHeaderProps {
@@ -29,15 +29,8 @@ export const MobileHeader: React.FC<MobileHeaderProps> = ({
           <Menu className="w-6 h-6 text-neutral-300" />
         </button>
 
-        {/* Right: Currency & Notifications */}
+        {/* Right: Notifications */}
         <div className="flex items-center space-x-3">
-          {/* Gem indicator */}
-          <div className="flex items-center space-x-1.5 bg-[#0e0e14] border border-neutral-800/80 px-2.5 py-1 rounded-full text-xs font-tech font-bold text-neutral-100">
-            <Gem className="w-3.5 h-3.5 text-red-500 fill-red-500/30" />
-            <span>1,250</span>
-            <span className="text-red-500 font-extrabold">+</span>
-          </div>
-
           {/* Notification icon */}
           <button className="p-1.5 relative text-neutral-300 hover:text-white">
             <Bell className="w-5 h-5" />
@@ -51,7 +44,7 @@ export const MobileHeader: React.FC<MobileHeaderProps> = ({
         <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex flex-col animate-in fade-in duration-200">
           <div className="p-4 flex items-center justify-between border-b border-neutral-800">
             <div className="flex items-center space-x-2">
-              <img src="/oglogo.png" alt="Logo" className="h-8 w-auto" />
+              <img src="/logo_transparent.png" alt="Logo" className="h-8 w-auto object-contain" />
               <span className="font-display font-bold text-base text-neutral-100 uppercase">
                 HIDDEN <span className="text-red-600">GAMBIT</span>
               </span>
@@ -102,7 +95,7 @@ export const MobileHeader: React.FC<MobileHeaderProps> = ({
                   <div className="text-[10px] font-mono text-neutral-400">Level 24 • 7,850 XP</div>
                 </div>
               </div>
-              <span className="text-xs font-tech text-red-500 font-bold uppercase">View Dossier</span>
+              <span className="text-xs font-tech text-red-500 font-bold uppercase">View Profile</span>
             </div>
           </div>
         </div>

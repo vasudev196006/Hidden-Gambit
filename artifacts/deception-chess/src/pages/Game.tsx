@@ -218,7 +218,7 @@ export default function Game() {
       {
         onSuccess: (data) => {
           if (data.bothReady) {
-            toast({ title: "Both operatives ready", description: "Operation commencing..." });
+            toast({ title: "Both players ready", description: "Match commencing..." });
           } else {
             toast({ title: "Impostor selected", description: "Awaiting opponent..." });
           }
@@ -701,7 +701,7 @@ export default function Game() {
           {gameState.status === "waiting" && (
             <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex flex-col items-center justify-center z-10 rounded-xl text-center p-6">
               <Loader2 className="h-10 w-10 text-primary animate-spin mb-4" />
-              <h2 className="text-2xl font-mono font-bold mb-2">Awaiting Operative</h2>
+              <h2 className="text-2xl font-mono font-bold mb-2">Awaiting Player</h2>
               <p className="text-muted-foreground text-sm mb-3">Share this link with your opponent.</p>
               <p className="font-mono text-xl font-bold text-primary tracking-widest mb-4">{id}</p>
               <Button
@@ -782,7 +782,7 @@ export default function Game() {
           {/* Game over overlay */}
           {gameState.status === "finished" && (
             <div className="absolute inset-0 bg-background/92 backdrop-blur-md flex flex-col items-center justify-center z-20 rounded-xl border border-border text-center p-6">
-              <h2 className="text-4xl font-mono font-bold mb-2 text-primary">Operation Complete</h2>
+              <h2 className="text-4xl font-mono font-bold mb-2 text-primary font-display uppercase tracking-widest">Match Complete</h2>
               <p className="text-xl mb-6">
                 {gameState.winner === "draw"
                   ? "Stalemate — draw."
@@ -947,11 +947,11 @@ export default function Game() {
           </CardContent>
         </Card>
 
-        {/* Operative actions */}
+        {/* Player actions */}
         {isPlayer && gameState.status === "active" && (
           <Card className="bg-card border-card-border rounded-xl border-dashed" data-testid="card-actions">
             <CardHeader className="pb-2">
-              <CardTitle className="font-mono text-xs uppercase text-muted-foreground">Operative Actions</CardTitle>
+              <CardTitle className="font-mono text-xs uppercase text-muted-foreground">Player Actions</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
               <Button
