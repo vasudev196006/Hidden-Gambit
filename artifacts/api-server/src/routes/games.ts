@@ -27,10 +27,18 @@ function generatePlayerId(): string {
 
 router.get("/games", async (req, res): Promise<void> => {
   try {
+    const rawPlayerId = typeof req.query["playerId"] === "string" ? req.query["playerId"] : undefined;
+    if (!rawPlayerId) {
+      res.json([]);
+      return;
+    }
     const games = await listActiveGames();
+    const myGames = games.filter(
+      (g) => g.whitePlayerId === rawPlayerId || g.blackPlayerId === rawPlayerId
+    );
 
     res.json(
-      games.map((g) => ({
+      myGames.map((g) => ({
         id: g.id,
         status: g.status,
         whitePlayerName: g.whitePlayerName,
