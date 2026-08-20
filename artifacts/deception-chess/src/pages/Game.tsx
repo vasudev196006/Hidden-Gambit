@@ -12,7 +12,9 @@ import { useToast } from "@/hooks/use-toast";
 import {
   Loader2, AlertTriangle, Shield, Swords, ArrowLeft,
   Zap, Search, ChevronRight, X, Copy, CheckCircle2,
+  Volume2, VolumeX,
 } from "lucide-react";
+import { soundManager } from "@/lib/soundEffects";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Dialog,
@@ -161,6 +163,13 @@ export default function Game() {
 
   const setImpostor = useSetImpostor();
 
+  const [isMuted, setIsMuted] = useState(() => soundManager.getMuted());
+
+  const toggleSound = () => {
+    const muted = soundManager.toggleMute();
+    setIsMuted(muted);
+  };
+
   useEffect(() => {
     if (!id) return;
     const stored = sessionStorage.getItem(`game_${id}_player`) ?? null;
@@ -170,7 +179,30 @@ export default function Game() {
     socket.emit("joinRoom", { gameId: id, playerId: stored });
 
     socket.on("gameState", (state: GameState & { lastMoveFrom?: string; lastMoveTo?: string }) => {
-      setGameState(state);
+      setGameState((prev) => {
+        if (state.status === "active" && prev?.status === "selecting") {
+          soundManager.playGameStart();
+        } else if (state.status === "finished" && prev?.status !== "finished") {
+          soundManager.playWin();
+        } else if (
+          state.lastMoveFrom &&
+          state.lastMoveTo &&
+          (state.lastMoveFrom !== prev?.lastMoveFrom || state.lastMoveTo !== prev?.lastMoveTo)
+        ) {
+          const eventText = (state.lastEvent || "").toLowerCase();
+          if (eventText.includes("impostor")) {
+            soundManager.playImpostor();
+          } else if (eventText.includes("captured") || eventText.includes("take") || eventText.includes("x")) {
+            soundManager.playCapture();
+          } else if (state.isCheck) {
+            soundManager.playCheck();
+          } else {
+            soundManager.playMove();
+          }
+        }
+        return state;
+      });
+
       queryClient.invalidateQueries({ queryKey: GAME_QUERY_KEY });
       if (state.lastMoveFrom && state.lastMoveTo) {
         setLastMove({ from: state.lastMoveFrom, to: state.lastMoveTo });
@@ -807,12 +839,25 @@ export default function Game() {
           >
             <ArrowLeft className="mr-2 h-4 w-4" /> Lobby
           </Button>
-          <img 
-            src="/chess_logo.png" 
-            alt="Hidden Gambit Logo" 
-            className="h-10 w-auto object-contain cursor-pointer drop-shadow-[0_2px_10px_rgba(220,38,38,0.4)] hover:scale-105 transition-transform"
-            onClick={() => setLocation("/")}
-          />
+
+          <div className="flex items-center space-x-2">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={toggleSound}
+              className="h-9 w-9 border-border text-muted-foreground hover:text-foreground"
+              title={isMuted ? "Unmute Sound" : "Mute Sound"}
+            >
+              {isMuted ? <VolumeX className="h-4 w-4 text-red-500" /> : <Volume2 className="h-4 w-4 text-green-500" />}
+            </Button>
+
+            <img 
+              src="/chess_logo.png" 
+              alt="Hidden Gambit Logo" 
+              className="h-10 w-auto object-contain cursor-pointer drop-shadow-[0_2px_10px_rgba(220,38,38,0.4)] hover:scale-105 transition-transform"
+              onClick={() => setLocation("/")}
+            />
+          </div>
         </div>
 
         {/* Players */}
