@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import { Sidebar, NavTab } from "@/components/launcher/Sidebar";
 import { TopHUD } from "@/components/launcher/TopHUD";
 import { HeroSection } from "@/components/launcher/HeroSection";
-import { FeatureStrip } from "@/components/launcher/FeatureStrip";
 import { ChessArtwork } from "@/components/launcher/ChessArtwork";
 import { CanvasEmbers } from "@/components/launcher/CanvasEmbers";
 import { MobileHeader } from "@/components/launcher/MobileHeader";
@@ -59,11 +58,6 @@ export default function Lobby() {
 
         {/* Hero Section: text.png + tagline + create game button */}
         <HeroSection onPlayClick={() => handleSelectTab("PLAY")} />
-
-        {/* Bottom Feature Strip */}
-        <div className="w-full z-30">
-          <FeatureStrip />
-        </div>
       </main>
 
       {/* FIXED MOBILE BOTTOM NAV (< 1024px) */}
