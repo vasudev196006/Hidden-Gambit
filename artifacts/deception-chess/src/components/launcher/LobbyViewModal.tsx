@@ -84,9 +84,16 @@ export const LobbyViewModal: React.FC<LobbyViewModalProps> = ({ onClose }) => {
         {/* Modal Body */}
         <div className="p-5 flex-1 overflow-y-auto space-y-6">
           {/* Create Match Section */}
-          <div className="bg-[#0e0e14]/80 border border-red-950/40 p-4 rounded clip-chamfer-sm flex flex-col md:flex-row items-center justify-between gap-4">
-            <div className="flex-1 w-full space-y-1">
-              <label className="text-xs font-tech font-semibold text-red-400 uppercase tracking-wider">
+          <div className="relative bg-gradient-to-r from-red-950/60 via-[#100d14] to-red-950/60 border border-red-700/60 p-4 sm:p-5 rounded clip-chamfer-sm flex flex-col md:flex-row items-center justify-between gap-4 shadow-[0_0_20px_rgba(220,38,38,0.25)] overflow-hidden">
+            {/* Tactical Corner Accents */}
+            <span className="absolute top-0 left-0 w-2 h-2 border-t-2 border-l-2 border-red-500/80" />
+            <span className="absolute top-0 right-0 w-2 h-2 border-t-2 border-r-2 border-red-500/80" />
+            <span className="absolute bottom-0 left-0 w-2 h-2 border-b-2 border-l-2 border-red-500/80" />
+            <span className="absolute bottom-0 right-0 w-2 h-2 border-b-2 border-r-2 border-red-500/80" />
+
+            <div className="flex-1 w-full space-y-1 z-10">
+              <label className="text-xs font-tech font-semibold text-red-400 uppercase tracking-wider flex items-center">
+                <span className="w-1.5 h-1.5 rounded-full bg-red-500 mr-2 animate-ping" />
                 PLAYER NAME
               </label>
               <input
@@ -94,18 +101,19 @@ export const LobbyViewModal: React.FC<LobbyViewModalProps> = ({ onClose }) => {
                 value={playerName}
                 onChange={(e) => setPlayerName(e.target.value)}
                 placeholder="Enter Player Name..."
-                className="w-full bg-[#050508] border border-red-900/40 px-3 py-2 rounded font-mono text-sm text-neutral-100 focus:outline-none focus:border-red-500"
+                className="w-full bg-[#050508]/90 border border-red-800/50 px-3.5 py-2.5 rounded font-mono text-sm text-neutral-100 focus:outline-none focus:border-red-500 shadow-inner"
               />
             </div>
+
             <button
               onClick={handleCreateGame}
               disabled={createGame.isPending}
-              className="w-full md:w-auto h-11 px-6 bg-metallic-red hover:bg-metallic-red-hover text-white font-tech font-bold text-sm tracking-widest uppercase rounded clip-chamfer-sm border border-red-500/60 shadow-[0_0_15px_rgba(220,38,38,0.4)] flex items-center justify-center space-x-2 shrink-0 transition-transform active:scale-95"
+              className="w-full md:w-auto h-11 px-7 bg-gradient-to-r from-red-700 via-red-600 to-red-800 hover:from-red-600 hover:to-red-700 text-white font-tech font-extrabold text-sm tracking-[0.15em] uppercase rounded clip-chamfer-btn border border-red-400 shadow-[0_0_20px_rgba(239,68,68,0.7)] hover:shadow-[0_0_30px_rgba(239,68,68,0.9)] flex items-center justify-center space-x-2 shrink-0 transition-all duration-200 active:scale-95 z-10 cursor-pointer"
             >
               {createGame.isPending ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
-                <Plus className="w-4 h-4" />
+                <Plus className="w-4 h-4 text-white drop-shadow-[0_0_4px_rgba(255,255,255,0.8)]" />
               )}
               <span>CREATE NEW MATCH</span>
             </button>
