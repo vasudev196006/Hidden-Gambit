@@ -5,7 +5,6 @@ import { HeroSection } from "@/components/launcher/HeroSection";
 import { ChessArtwork } from "@/components/launcher/ChessArtwork";
 import { CanvasEmbers } from "@/components/launcher/CanvasEmbers";
 import { MobileHeader } from "@/components/launcher/MobileHeader";
-import { MobileNav } from "@/components/launcher/MobileNav";
 
 import { LobbyViewModal } from "@/components/launcher/LobbyViewModal";
 import { ProfileDossierModal } from "@/components/launcher/ProfileDossierModal";
@@ -47,7 +46,7 @@ export default function Lobby() {
       </div>
 
       {/* MAIN CONTENT AREA */}
-      <main className="relative flex-1 h-full flex flex-col justify-between overflow-y-auto lg:overflow-hidden z-10 pb-16 lg:pb-0">
+      <main className="relative flex-1 h-full flex flex-col justify-between overflow-y-auto lg:overflow-hidden z-10 pb-0">
         {/* Centered Desktop Background Artwork */}
         <ChessArtwork />
 
@@ -59,11 +58,6 @@ export default function Lobby() {
         {/* Hero Section: text.png + tagline + create game button */}
         <HeroSection onPlayClick={() => handleSelectTab("PLAY")} />
       </main>
-
-      {/* FIXED MOBILE BOTTOM NAV (< 1024px) */}
-      <div className="block lg:hidden z-30">
-        <MobileNav activeTab={activeTab} onSelectTab={handleSelectTab} />
-      </div>
 
       {/* ACTIVE MODALS & OVERLAYS */}
       {activeModal === "PLAY" && <LobbyViewModal onClose={handleCloseModal} />}
