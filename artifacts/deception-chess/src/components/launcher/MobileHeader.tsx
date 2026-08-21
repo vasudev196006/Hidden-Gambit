@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Menu, Bell, X } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import { FaDiscord, FaXTwitter, FaGithub } from "react-icons/fa6";
 import { NavTab } from "./Sidebar";
 
@@ -60,14 +60,6 @@ export const MobileHeader: React.FC<MobileHeaderProps> = ({
               <FaGithub className="w-4 h-4" />
             </a>
           </div>
-        </div>
-
-        {/* Right: Notifications */}
-        <div className="flex items-center space-x-3">
-          <button className="p-1.5 relative text-neutral-300 hover:text-white">
-            <Bell className="w-5 h-5" />
-            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-600 rounded-full shadow-[0_0_4px_#ef4444]" />
-          </button>
         </div>
       </header>
 
