@@ -12,9 +12,11 @@ import { useToast } from "@/hooks/use-toast";
 import {
   Loader2, AlertTriangle, Shield, Swords, ArrowLeft,
   Zap, Search, ChevronRight, X, Copy, CheckCircle2,
-  Volume2, VolumeX,
+  Volume2, VolumeX, Settings,
 } from "lucide-react";
 import { soundManager } from "@/lib/soundEffects";
+import { getStoredTheme, BoardTheme } from "@/lib/boardTheme";
+import { SettingsModal } from "@/components/launcher/SettingsModal";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Dialog,
@@ -138,6 +140,25 @@ export default function Game() {
 
   // Last move highlight
   const [lastMove, setLastMove] = useState<{ from: string; to: string } | null>(null);
+
+  // Dynamic board color theme state
+  const [boardTheme, setBoardTheme] = useState<BoardTheme>(() => getStoredTheme());
+
+  useEffect(() => {
+    const handleThemeChange = (e: Event) => {
+      const customEv = e as CustomEvent<BoardTheme>;
+      if (customEv.detail) {
+        setBoardTheme(customEv.detail);
+      } else {
+        setBoardTheme(getStoredTheme());
+      }
+    };
+    window.addEventListener("boardThemeChanged", handleThemeChange);
+    return () => window.removeEventListener("boardThemeChanged", handleThemeChange);
+  }, []);
+
+  // Settings modal state
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   // Read playerId — sessionStorage is per-tab (no cross-tab collision)
   const storedPlayerId = id ? (sessionStorage.getItem(`game_${id}_player`) ?? undefined) : undefined;
@@ -671,8 +692,8 @@ export default function Game() {
               onSquareMouseUp: () => onSquareMouseUp(),
               boardOrientation: gameState.myColor === "black" ? "black" : "white",
               squareStyles: customSquareStyles,
-              darkSquareStyle: { backgroundColor: "#769656" },
-              lightSquareStyle: { backgroundColor: "#eeeed2" },
+              darkSquareStyle: { backgroundColor: boardTheme.dark },
+              lightSquareStyle: { backgroundColor: boardTheme.light },
               allowDragging: isMyTurn && gameState.status === "active" && impostorPhase === "idle" && !investigateMode && !isPenaltyPending
             }}
           />
@@ -851,6 +872,16 @@ export default function Game() {
               {isMuted ? <VolumeX className="h-4 w-4 text-red-500" /> : <Volume2 className="h-4 w-4 text-green-500" />}
             </Button>
 
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => setSettingsOpen(true)}
+              className="h-9 w-9 border-border text-muted-foreground hover:text-foreground"
+              title="Board Settings & Colors"
+            >
+              <Settings className="h-4 w-4 text-red-500" />
+            </Button>
+
             <img 
               src="/chess_logo.png" 
               alt="Hidden Gambit Logo" 
@@ -859,6 +890,8 @@ export default function Game() {
             />
           </div>
         </div>
+
+        {settingsOpen && <SettingsModal onClose={() => setSettingsOpen(false)} />}
 
         {/* Players */}
         <Card className="bg-card border-card-border rounded-xl" data-testid="card-intel">

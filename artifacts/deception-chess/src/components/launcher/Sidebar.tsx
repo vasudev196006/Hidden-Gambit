@@ -1,24 +1,22 @@
 import React from "react";
-import { Swords } from "lucide-react";
+import { Swords, Settings } from "lucide-react";
 import { FaDiscord, FaXTwitter, FaGithub } from "react-icons/fa6";
 
-export type NavTab = "PLAY" | "LOBBY";
+export type NavTab = "PLAY" | "LOBBY" | "SETTINGS";
 
 interface SidebarProps {
   activeTab: NavTab;
   onSelectTab: (tab: NavTab) => void;
   onOpenProfile?: () => void;
+  onOpenSettings?: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
   activeTab,
   onSelectTab,
   onOpenProfile,
+  onOpenSettings,
 }) => {
-  const navItems: { id: NavTab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
-    { id: "PLAY", label: "PLAY", icon: Swords },
-  ];
-
   return (
     <aside className="w-[250px] shrink-0 h-full bg-[#08080a] border-r border-neutral-800/40 flex flex-col justify-between p-4 z-20 relative select-none">
       {/* Top Section: Logo & Navigation */}
@@ -35,30 +33,42 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
         {/* Navigation Button List */}
         <nav className="flex flex-col space-y-2">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = activeTab === item.id;
-            return (
-              <button
-                key={item.id}
-                onClick={() => onSelectTab(item.id)}
-                className={`group relative w-full h-11 px-4 flex items-center space-x-3 rounded-lg text-left transition-all duration-150 active:scale-[0.98] cursor-pointer ${
-                  isActive
-                    ? "bg-red-950/50 border border-red-500/80 text-white shadow-[0_2px_12px_rgba(220,38,38,0.25)] font-semibold"
-                    : "bg-[#0c0c10] hover:bg-[#121218] border border-neutral-800/80 hover:border-neutral-700 text-neutral-400 hover:text-neutral-200"
-                }`}
-              >
-                <Icon
-                  className={`w-4 h-4 shrink-0 transition-colors duration-150 ${
-                    isActive ? "text-red-500" : "text-neutral-500 group-hover:text-neutral-300"
-                  }`}
-                />
-                <span className="font-tech font-bold tracking-wider text-xs uppercase">
-                  {item.label}
-                </span>
-              </button>
-            );
-          })}
+          <button
+            onClick={() => onSelectTab("PLAY")}
+            className={`group relative w-full h-11 px-4 flex items-center space-x-3 rounded-lg text-left transition-all duration-150 active:scale-[0.98] cursor-pointer ${
+              activeTab === "PLAY"
+                ? "bg-red-950/50 border border-red-500/80 text-white shadow-[0_2px_12px_rgba(220,38,38,0.25)] font-semibold"
+                : "bg-[#0c0c10] hover:bg-[#121218] border border-neutral-800/80 hover:border-neutral-700 text-neutral-400 hover:text-neutral-200"
+            }`}
+          >
+            <Swords
+              className={`w-4 h-4 shrink-0 transition-colors duration-150 ${
+                activeTab === "PLAY" ? "text-red-500" : "text-neutral-500 group-hover:text-neutral-300"
+              }`}
+            />
+            <span className="font-tech font-bold tracking-wider text-xs uppercase">
+              PLAY
+            </span>
+          </button>
+
+          {/* SETTINGS Button */}
+          <button
+            onClick={() => onOpenSettings ? onOpenSettings() : onSelectTab("SETTINGS")}
+            className={`group relative w-full h-11 px-4 flex items-center space-x-3 rounded-lg text-left transition-all duration-150 active:scale-[0.98] cursor-pointer ${
+              activeTab === "SETTINGS"
+                ? "bg-red-950/50 border border-red-500/80 text-white shadow-[0_2px_12px_rgba(220,38,38,0.25)] font-semibold"
+                : "bg-[#0c0c10] hover:bg-[#121218] border border-neutral-800/80 hover:border-neutral-700 text-neutral-400 hover:text-neutral-200"
+            }`}
+          >
+            <Settings
+              className={`w-4 h-4 shrink-0 transition-colors duration-150 ${
+                activeTab === "SETTINGS" ? "text-red-500" : "text-neutral-500 group-hover:text-neutral-300"
+              }`}
+            />
+            <span className="font-tech font-bold tracking-wider text-xs uppercase">
+              SETTINGS
+            </span>
+          </button>
         </nav>
       </div>
 

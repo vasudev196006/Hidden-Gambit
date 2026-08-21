@@ -8,14 +8,19 @@ import { MobileHeader } from "@/components/launcher/MobileHeader";
 
 import { LobbyViewModal } from "@/components/launcher/LobbyViewModal";
 import { ProfileDossierModal } from "@/components/launcher/ProfileDossierModal";
+import { SettingsModal } from "@/components/launcher/SettingsModal";
 
 export default function Lobby() {
   const [activeTab, setActiveTab] = useState<NavTab>("PLAY");
-  const [activeModal, setActiveModal] = useState<"PLAY" | "PROFILE" | null>(null);
+  const [activeModal, setActiveModal] = useState<"PLAY" | "PROFILE" | "SETTINGS" | null>(null);
 
   const handleSelectTab = (tab: NavTab) => {
     setActiveTab(tab);
-    setActiveModal("PLAY");
+    if (tab === "SETTINGS") {
+      setActiveModal("SETTINGS");
+    } else {
+      setActiveModal("PLAY");
+    }
   };
 
   const handleCloseModal = () => {
@@ -33,6 +38,10 @@ export default function Lobby() {
           activeTab={activeTab}
           onSelectTab={handleSelectTab}
           onOpenProfile={() => setActiveModal("PROFILE")}
+          onOpenSettings={() => {
+            setActiveTab("SETTINGS");
+            setActiveModal("SETTINGS");
+          }}
         />
       </div>
 
@@ -62,6 +71,7 @@ export default function Lobby() {
       {/* ACTIVE MODALS & OVERLAYS */}
       {activeModal === "PLAY" && <LobbyViewModal onClose={handleCloseModal} />}
       {activeModal === "PROFILE" && <ProfileDossierModal onClose={handleCloseModal} />}
+      {activeModal === "SETTINGS" && <SettingsModal onClose={handleCloseModal} />}
     </div>
   );
 }
