@@ -74,9 +74,9 @@
   --ring: 354 85% 44%;
 
   --app-font-sans: "Inter", sans-serif;
-  --app-font-mono: "Rajdhani", monospace;
-  --app-font-display: "Cinzel", serif;
-  --app-font-tech: "Rajdhani", sans-serif;
+  --app-font-mono: "JetBrains Mono", monospace;
+  --app-font-display: "Bebas Neue", "Outfit", sans-serif;
+  --app-font-tech: "Bebas Neue", "Outfit", sans-serif;
   --radius: 0.15rem;
 }
 
@@ -114,13 +114,13 @@
   }
 }
 
-/* Custom Launcher Fonts */
+/* Custom Launcher Fonts (Fortnite Heavy Condensed Display) */
 .font-display {
-  font-family: var(--app-font-display), "Cinzel", serif;
+  font-family: var(--app-font-display), "Bebas Neue", "Outfit", sans-serif;
 }
 
 .font-tech {
-  font-family: var(--app-font-tech), "Rajdhani", sans-serif;
+  font-family: var(--app-font-tech), "Bebas Neue", "Outfit", sans-serif;
 }
 
 /* Custom Extruded Title Typographies */
