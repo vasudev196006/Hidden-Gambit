@@ -22,7 +22,7 @@ class SoundManager {
   }
 
   private preloadSounds(): void {
-    if (typeof window === "undefined") return;
+    if (typeof window === "undefined" || typeof Audio === "undefined") return;
     Object.entries(this.soundUrls).forEach(([key, url]) => {
       try {
         const audio = new Audio(url);
@@ -44,7 +44,7 @@ class SoundManager {
   }
 
   private playSound(key: string): void {
-    if (this.isMuted || typeof window === "undefined") return;
+    if (this.isMuted || typeof window === "undefined" || typeof Audio === "undefined") return;
 
     try {
       const cached = this.audioCache.get(key);
