@@ -99,10 +99,10 @@ export const MobileHeader: React.FC<MobileHeaderProps> = ({
                     onSelectTab(tab);
                     setDrawerOpen(false);
                   }}
-                  className={`w-full py-3.5 px-4 rounded clip-chamfer-btn font-tech font-bold text-base tracking-wider uppercase transition-colors ${
+                  className={`w-full py-3 px-4 rounded-lg font-tech font-bold text-sm tracking-wider uppercase transition-all duration-150 active:scale-[0.98] ${
                     activeTab === tab
-                      ? "bg-gradient-to-r from-red-950 via-red-900 to-red-950 border border-red-600 text-white shadow-[0_0_12px_rgba(220,38,38,0.4)]"
-                      : "bg-[#0e0e14] border border-white/5 text-neutral-400"
+                      ? "bg-red-950/60 border border-red-500/80 text-white shadow-[0_2px_12px_rgba(220,38,38,0.25)]"
+                      : "bg-[#0c0c10] border border-neutral-800 text-neutral-400"
                   }`}
                 >
                   {tab}

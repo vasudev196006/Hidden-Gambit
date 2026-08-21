@@ -42,20 +42,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <button
                 key={item.id}
                 onClick={() => onSelectTab(item.id)}
-                className={`group relative w-full h-11 px-4 flex items-center space-x-3.5 rounded transition-all duration-200 clip-chamfer-btn text-left ${
+                className={`group relative w-full h-11 px-4 flex items-center space-x-3 rounded-lg text-left transition-all duration-150 active:scale-[0.98] cursor-pointer ${
                   isActive
-                    ? "bg-gradient-to-r from-red-950/90 via-red-900/50 to-red-950/80 border border-red-600 text-white shadow-[0_0_15px_rgba(220,38,38,0.35)] font-bold"
-                    : "bg-[#0e0e12]/80 hover:bg-[#15151c]/90 border border-white/5 hover:border-red-900/30 text-neutral-400 hover:text-neutral-200"
+                    ? "bg-red-950/50 border border-red-500/80 text-white shadow-[0_2px_12px_rgba(220,38,38,0.25)] font-semibold"
+                    : "bg-[#0c0c10] hover:bg-[#121218] border border-neutral-800/80 hover:border-neutral-700 text-neutral-400 hover:text-neutral-200"
                 }`}
               >
                 <Icon
-                  className={`w-5 h-5 shrink-0 transition-colors duration-200 ${
-                    isActive
-                      ? "text-red-500 drop-shadow-[0_0_8px_rgba(239,68,68,0.9)]"
-                      : "text-neutral-500 group-hover:text-neutral-300"
+                  className={`w-4 h-4 shrink-0 transition-colors duration-150 ${
+                    isActive ? "text-red-500" : "text-neutral-500 group-hover:text-neutral-300"
                   }`}
                 />
-                <span className="font-tech tracking-wider text-sm uppercase">
+                <span className="font-tech font-bold tracking-wider text-xs uppercase">
                   {item.label}
                 </span>
               </button>
