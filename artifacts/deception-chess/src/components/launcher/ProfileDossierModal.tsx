@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { X, User, Trophy, Flame, Target, ShieldCheck, Edit2, Check, UserCheck } from "lucide-react";
-import { getStoredProfile, updateProfileName, calculateRank, PlayerProfile } from "@/lib/playerProfile";
+import { getStoredProfile, updateProfileName, PlayerProfile } from "@/lib/playerProfile";
 
 interface ProfileDossierModalProps {
   onClose: () => void;
@@ -10,9 +10,6 @@ export const ProfileDossierModal: React.FC<ProfileDossierModalProps> = ({ onClos
   const [profile, setProfile] = useState<PlayerProfile>(() => getStoredProfile());
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState(profile.name);
-
-  const { rankTitle, level, expInLevel, expForNextLevel } = calculateRank(profile.exp);
-  const expPercent = Math.min(100, Math.round((expInLevel / expForNextLevel) * 100));
 
   const winRate = profile.totalGames > 0 
     ? Math.round((profile.wins / profile.totalGames) * 100) 
@@ -65,7 +62,7 @@ export const ProfileDossierModal: React.FC<ProfileDossierModalProps> = ({ onClos
               </svg>
             </div>
 
-            <div className="flex-1 text-center sm:text-left space-y-1.5 w-full">
+            <div className="flex-1 text-center sm:text-left space-y-2 w-full">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                 {isEditing ? (
                   <div className="flex items-center space-x-2 w-full">
@@ -86,47 +83,36 @@ export const ProfileDossierModal: React.FC<ProfileDossierModalProps> = ({ onClos
                   </div>
                 ) : (
                   <div className="flex items-center justify-center sm:justify-start space-x-2">
-                    <h3 className="font-tech font-bold text-lg text-neutral-100">{profile.name}</h3>
+                    <h3 className="font-tech font-bold text-xl text-neutral-100">{profile.name}</h3>
                     <button
                       onClick={() => setIsEditing(true)}
                       className="p-1 text-neutral-400 hover:text-white transition-colors cursor-pointer"
                       title="Edit Name"
                     >
-                      <Edit2 className="w-3.5 h-3.5" />
+                      <Edit2 className="w-4 h-4" />
                     </button>
-                    {profile.isGuest && (
-                      <span className="text-[10px] font-mono text-neutral-500 bg-neutral-900 border border-neutral-800 px-1.5 py-0.5 rounded">
-                        GUEST
+                    {profile.isGuest ? (
+                      <span className="text-[10px] font-mono text-neutral-400 bg-neutral-900 border border-neutral-800 px-2 py-0.5 rounded">
+                        GUEST ACCOUNT
+                      </span>
+                    ) : (
+                      <span className="text-[10px] font-mono text-emerald-400 bg-emerald-950/40 border border-emerald-800/60 px-2 py-0.5 rounded">
+                        PLAYER ACCOUNT
                       </span>
                     )}
                   </div>
                 )}
-
-                <span className="text-[10px] font-tech font-bold bg-red-950/80 border border-red-800 text-red-400 px-2.5 py-0.5 rounded-full uppercase self-center sm:self-auto">
-                  {rankTitle}
-                </span>
               </div>
 
-              <div className="flex items-center justify-between text-xs font-mono text-neutral-400">
-                <span>Clearance Level {level}</span>
+              <div className="flex items-center justify-between text-xs font-mono text-neutral-400 pt-1">
+                <span>Account Stats & History</span>
                 <button
                   onClick={handlePlayAsGuest}
-                  className="text-[11px] text-red-400 hover:text-red-300 underline underline-offset-2 flex items-center space-x-1 cursor-pointer"
+                  className="text-xs text-red-400 hover:text-red-300 underline underline-offset-2 flex items-center space-x-1 cursor-pointer"
                 >
-                  <UserCheck className="w-3 h-3 mr-0.5" />
+                  <UserCheck className="w-3.5 h-3.5 mr-1" />
                   <span>Play as Guest</span>
                 </button>
-              </div>
-
-              {/* Progress Bar */}
-              <div className="pt-1.5">
-                <div className="flex justify-between text-[11px] font-mono text-neutral-400 mb-1">
-                  <span>EXP: {profile.exp.toLocaleString()}</span>
-                  <span>{expPercent}%</span>
-                </div>
-                <div className="w-full h-1.5 bg-neutral-900 rounded-full overflow-hidden border border-white/5">
-                  <div className="h-full bg-red-600 rounded-full transition-all duration-300" style={{ width: `${expPercent}%` }} />
-                </div>
               </div>
             </div>
           </div>

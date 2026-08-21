@@ -6,7 +6,6 @@ export interface PlayerProfile {
   losses: number;
   draws: number;
   winStreak: number;
-  exp: number;
 }
 
 const DEFAULT_PROFILE_KEY = "hidden_gambit_player_profile";
@@ -21,7 +20,6 @@ export function getStoredProfile(): PlayerProfile {
       losses: 0,
       draws: 0,
       winStreak: 0,
-      exp: 0,
     };
   }
 
@@ -46,7 +44,6 @@ export function getStoredProfile(): PlayerProfile {
       losses: 0,
       draws: 0,
       winStreak: 0,
-      exp: 0,
     };
     saveProfile(profile);
     return profile;
@@ -62,7 +59,6 @@ export function getStoredProfile(): PlayerProfile {
     losses: 0,
     draws: 0,
     winStreak: 0,
-    exp: 0,
   };
   saveProfile(defaultGuest);
   return defaultGuest;
@@ -92,23 +88,18 @@ export function recordMatchResult(result: "win" | "loss" | "draw"): PlayerProfil
   let losses = current.losses;
   let draws = current.draws;
   let winStreak = current.winStreak;
-  let expGain = 50; // base exp per match
 
   if (result === "win") {
     wins += 1;
     winStreak += 1;
-    expGain += 150; // +150 exp for win
   } else if (result === "loss") {
     losses += 1;
     winStreak = 0;
-    expGain += 25; // +25 exp for effort
   } else {
     draws += 1;
-    expGain += 75; // +75 exp for draw
   }
 
   const totalGames = current.totalGames + 1;
-  const exp = current.exp + expGain;
 
   const updated: PlayerProfile = {
     ...current,
@@ -117,24 +108,8 @@ export function recordMatchResult(result: "win" | "loss" | "draw"): PlayerProfil
     losses,
     draws,
     winStreak,
-    exp,
   };
 
   saveProfile(updated);
   return updated;
-}
-
-export function calculateRank(exp: number): { rankTitle: string; level: number; expInLevel: number; expForNextLevel: number } {
-  const level = Math.floor(exp / 500) + 1;
-  const expInLevel = exp % 500;
-  const expForNextLevel = 500;
-
-  let rankTitle = "RECRUIT";
-  if (level >= 25) rankTitle = "GRANDMASTER";
-  else if (level >= 15) rankTitle = "MASTER";
-  else if (level >= 10) rankTitle = "TACTICIAN";
-  else if (level >= 5) rankTitle = "AGENT";
-  else if (level >= 2) rankTitle = "OPERATIVE";
-
-  return { rankTitle, level, expInLevel, expForNextLevel };
 }
