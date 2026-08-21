@@ -185,16 +185,16 @@ export default function Game() {
         } else if (state.status === "finished" && prev?.status !== "finished") {
           soundManager.playWin();
         } else if (
-          state.lastMoveFrom &&
-          state.lastMoveTo &&
-          (state.lastMoveFrom !== prev?.lastMoveFrom || state.lastMoveTo !== prev?.lastMoveTo)
+          (state as any).lastMoveFrom &&
+          (state as any).lastMoveTo &&
+          ((state as any).lastMoveFrom !== (prev as any)?.lastMoveFrom || (state as any).lastMoveTo !== (prev as any)?.lastMoveTo)
         ) {
           const eventText = (state.lastEvent || "").toLowerCase();
           if (eventText.includes("impostor")) {
             soundManager.playImpostor();
           } else if (eventText.includes("captured") || eventText.includes("take") || eventText.includes("x")) {
             soundManager.playCapture();
-          } else if (state.isCheck) {
+          } else if ((state as any).isCheck) {
             soundManager.playCheck();
           } else {
             soundManager.playMove();

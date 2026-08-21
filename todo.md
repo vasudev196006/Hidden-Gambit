@@ -21,7 +21,24 @@ This file tracks the status of bugs and improvements found in `error.md`.
 
 ## Still Needs to Be Taken Care Of
 
-*(None)*
+*(None - Core bugs resolved)*
+
+## 🚀 Upcoming Player Experience & Feature Roadmap
+
+- [ ] **1. Game Clocks & Time Controls (Blitz / Rapid / Turn Countdown)**
+  - *Goal:* Allow players to select match time controls (e.g., 5 min Blitz, 10 min Rapid, or 30-60s per turn countdown) during room creation. Broadcast server-side timer state over WebSockets and automatically flag/forfeit on timeout.
+- [ ] **2. Single-Player Practice / Vs Bot Mode & Interactive Tutorial**
+  - *Goal:* Implement a solo practice mode against a basic engine/bot so players can test impostor strategies anytime. Build a 4-step interactive tutorial explaining impostor selection, activation, and investigation mechanics.
+- [ ] **3. Full Move History & Event Log (PGN Notation Panel)**
+  - *Goal:* Replace single `lastEvent` string with a scrollable move history panel displaying standard chess move notation alongside variant events (*"White activated Impostor at e4"*, *"Black investigated e-file — SUCCESS"*).
+- [ ] **4. One-Click Rematch System**
+  - *Goal:* Add a "Request Rematch" button on the Game Over modal that automatically starts a new match with swapped colors (`White ↔ Black`) once both players accept.
+- [ ] **5. Captured Pieces & Material Advantage Counter**
+  - *Goal:* Display captured pieces tray and relative point advantage (`+3`, `+1`) alongside player profile HUDs.
+- [ ] **6. Mind Games & Reaction Emotes (Quick Chat)**
+  - *Goal:* Add floating emoji reaction overlays (🤔 *Thinking*, 😈 *Bluffing*, 🔍 *Suspicious*, 💥 *Busted!*) to enhance the psychological deduction gameplay.
+- [ ] **7. Spectator Mode**
+  - *Goal:* Allow non-player connections to view live ongoing matches via game link with both secret impostors hidden.
 
 ## No Action Required (Not a Bug)
 

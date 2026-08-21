@@ -2,7 +2,7 @@ import React from "react";
 import { Swords } from "lucide-react";
 import { FaDiscord, FaXTwitter, FaGithub } from "react-icons/fa6";
 
-export type NavTab = "PLAY";
+export type NavTab = "PLAY" | "LOBBY";
 
 interface SidebarProps {
   activeTab: NavTab;
