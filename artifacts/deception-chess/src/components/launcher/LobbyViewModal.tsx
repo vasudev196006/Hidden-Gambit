@@ -1,8 +1,9 @@
 import React, { useState } from "react";
 import { useLocation } from "wouter";
 import { useCreateGame, useJoinGame } from "@workspace/api-client-react";
-import { X, Plus, LogIn, Loader2, Radio } from "lucide-react";
+import { X, Plus, LogIn, Loader2, Radio, UserCheck } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { getStoredProfile, updateProfileName } from "@/lib/playerProfile";
 
 interface LobbyViewModalProps {
   onClose: () => void;
@@ -12,21 +13,28 @@ export const LobbyViewModal: React.FC<LobbyViewModalProps> = ({ onClose }) => {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [playerName, setPlayerName] = useState(
-    () => localStorage.getItem("playerName") || "GAMBIT_KNIGHT"
+    () => getStoredProfile().name
   );
   const [joinCode, setJoinCode] = useState("");
 
   const createGame = useCreateGame();
   const joinGame = useJoinGame();
 
+  const handleSetGuest = () => {
+    const guestNum = Math.floor(1000 + Math.random() * 9000);
+    const guestName = `Guest_${guestNum}`;
+    updateProfileName(guestName, true);
+    setPlayerName(guestName);
+  };
+
   const handleCreateGame = () => {
     if (!playerName.trim()) {
       toast({ title: "Player name required", variant: "destructive" });
       return;
     }
-    localStorage.setItem("playerName", playerName);
+    updateProfileName(playerName.trim(), playerName.trim().startsWith("Guest_"));
     createGame.mutate(
-      { data: { playerName } },
+      { data: { playerName: playerName.trim() } },
       {
         onSuccess: (res) => {
           sessionStorage.setItem(`game_${res.gameId}_player`, res.playerId);
@@ -50,9 +58,9 @@ export const LobbyViewModal: React.FC<LobbyViewModalProps> = ({ onClose }) => {
       toast({ title: "Match code required", variant: "destructive" });
       return;
     }
-    localStorage.setItem("playerName", playerName);
+    updateProfileName(playerName.trim(), playerName.trim().startsWith("Guest_"));
     joinGame.mutate(
-      { id: cleanCode, data: { playerName } },
+      { id: cleanCode, data: { playerName: playerName.trim() } },
       {
         onSuccess: (res) => {
           sessionStorage.setItem(`game_${res.gameId}_player`, res.playerId);
@@ -91,9 +99,19 @@ export const LobbyViewModal: React.FC<LobbyViewModalProps> = ({ onClose }) => {
           {/* Create Match Section */}
           <div className="bg-[#121218] border border-neutral-800/80 p-4 sm:p-5 rounded-lg flex flex-col md:flex-row items-center justify-between gap-4 shadow-sm">
             <div className="flex-1 w-full space-y-1.5">
-              <label className="text-xs font-tech font-semibold text-neutral-400 uppercase tracking-wider block">
-                PLAYER NAME
-              </label>
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-tech font-semibold text-neutral-400 uppercase tracking-wider block">
+                  PLAYER NAME
+                </label>
+                <button
+                  type="button"
+                  onClick={handleSetGuest}
+                  className="text-[11px] font-mono text-red-400 hover:text-red-300 underline underline-offset-2 flex items-center cursor-pointer"
+                >
+                  <UserCheck className="w-3 h-3 mr-1" />
+                  Play as Guest
+                </button>
+              </div>
               <input
                 type="text"
                 value={playerName}

@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { soundManager } from "@/lib/soundEffects";
 import { getStoredTheme, BoardTheme } from "@/lib/boardTheme";
+import { recordMatchResult } from "@/lib/playerProfile";
 import { SettingsModal } from "@/components/launcher/SettingsModal";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -205,6 +206,14 @@ export default function Game() {
           soundManager.playGameStart();
         } else if (state.status === "finished" && prev?.status !== "finished") {
           soundManager.playWin();
+          const myColor = state.myColor;
+          if (state.winner === "draw") {
+            recordMatchResult("draw");
+          } else if (state.winner === myColor) {
+            recordMatchResult("win");
+          } else if (state.winner) {
+            recordMatchResult("loss");
+          }
         } else if (
           (state as any).lastMoveFrom &&
           (state as any).lastMoveTo &&
