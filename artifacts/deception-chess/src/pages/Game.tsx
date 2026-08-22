@@ -20,7 +20,6 @@ import { recordMatchResult } from "@/lib/playerProfile";
 import { SettingsModal } from "@/components/launcher/SettingsModal";
 import { CapturedPieces } from "@/components/game/CapturedPieces";
 import { MoveHistoryPanel } from "@/components/game/MoveHistoryPanel";
-import { EmotePicker, EmoteItem } from "@/components/game/EmotePicker";
 import { GameClock } from "@/components/game/GameClock";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -165,14 +164,6 @@ export default function Game() {
   // Settings modal state
   const [settingsOpen, setSettingsOpen] = useState(false);
 
-  // Reaction Emotes State
-  const [activeEmotes, setActiveEmotes] = useState<{ id: number; color: "white" | "black"; emote: string }[]>([]);
-
-  const handleSendEmote = useCallback((item: EmoteItem) => {
-    if (!id || !playerId) return;
-    socket.emit("sendEmote", { gameId: id, playerId, emote: item.emoji });
-  }, [id, playerId]);
-
   const handleRequestRematch = useCallback(() => {
     if (!id || !playerId) return;
     socket.emit("requestRematch", { gameId: id, playerId });
@@ -271,17 +262,9 @@ export default function Game() {
       toast({ title: "Invalid Move", description: error.message, variant: "destructive" });
     });
 
-    socket.on("emoteReceived", (data: { playerId: string; color: "white" | "black"; emote: string; id: number }) => {
-      setActiveEmotes((prev) => [...prev, { id: data.id, color: data.color, emote: data.emote }]);
-      setTimeout(() => {
-        setActiveEmotes((prev) => prev.filter((e) => e.id !== data.id));
-      }, 3000);
-    });
-
     return () => {
       socket.off("gameState");
       socket.off("moveError");
-      socket.off("emoteReceived");
       socket.disconnect();
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -999,18 +982,6 @@ export default function Game() {
                 <p className="text-xs text-muted-foreground uppercase">Black</p>
                 <CapturedPieces fen={gameState.fen} displayFor="black" />
               </div>
-
-              {/* Floating Emote Overlays */}
-              {activeEmotes.map((e) => (
-                <div
-                  key={e.id}
-                  className={`absolute -top-8 text-3xl animate-bounce z-30 drop-shadow-[0_4px_10px_rgba(0,0,0,0.5)] ${
-                    e.color === "white" ? "left-4" : "right-4"
-                  }`}
-                >
-                  {e.emote}
-                </div>
-              ))}
             </div>
 
             {gameState.status === "active" && (
@@ -1045,13 +1016,6 @@ export default function Game() {
                 blackPlayerName={gameState.blackPlayerName ?? "Black"}
               />
             </div>
-
-            {/* Mind Games Quick Chat Emotes */}
-            {isPlayer && gameState.status === "active" && (
-              <div className="pt-1">
-                <EmotePicker onSelectEmote={handleSendEmote} />
-              </div>
-            )}
           </CardContent>
         </Card>
 

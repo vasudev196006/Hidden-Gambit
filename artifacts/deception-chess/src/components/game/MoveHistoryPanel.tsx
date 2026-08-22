@@ -25,10 +25,12 @@ export const MoveHistoryPanel: React.FC<MoveHistoryPanelProps> = ({
   whitePlayerName = "White",
   blackPlayerName = "Black",
 }) => {
-  const bottomRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (containerRef.current) {
+      containerRef.current.scrollTop = containerRef.current.scrollHeight;
+    }
   }, [history.length]);
 
   if (!history || history.length === 0) {
@@ -182,9 +184,8 @@ export const MoveHistoryPanel: React.FC<MoveHistoryPanelProps> = ({
   };
 
   return (
-    <div className="flex flex-col h-44 overflow-y-auto pr-1 space-y-0.5 scrollbar-thin scrollbar-thumb-border">
+    <div ref={containerRef} className="flex flex-col h-44 overflow-y-auto pr-1 space-y-0.5 scrollbar-thin scrollbar-thumb-border">
       {renderEntries()}
-      <div ref={bottomRef} />
     </div>
   );
 };
