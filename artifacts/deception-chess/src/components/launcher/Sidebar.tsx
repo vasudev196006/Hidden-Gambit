@@ -26,7 +26,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <img
             src="/logo_transparent.png"
             alt="Hidden Gambit"
-            className="h-28 w-auto object-contain hover:scale-105 transition-transform duration-300 cursor-pointer"
+            className="h-28 w-auto object-contain cursor-pointer"
             onClick={() => onSelectTab("LOBBY")}
           />
         </div>

@@ -938,7 +938,7 @@ export default function Game() {
             <img 
               src="/logo_transparent.png" 
               alt="Hidden Gambit Logo" 
-              className="h-10 w-auto object-contain cursor-pointer drop-shadow-[0_2px_10px_rgba(220,38,38,0.4)] hover:scale-105 transition-transform"
+              className="h-10 w-auto object-contain cursor-pointer drop-shadow-[0_2px_10px_rgba(220,38,38,0.4)]"
               onClick={() => setLocation("/")}
             />
           </div>

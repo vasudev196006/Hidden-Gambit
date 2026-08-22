@@ -44,7 +44,7 @@ export default function Join() {
           <img 
             src="/logo_transparent.png" 
             alt="Hidden Gambit Logo" 
-            className="h-36 w-auto object-contain mb-3 hover:scale-105 transition-transform duration-300"
+            className="h-36 w-auto object-contain mb-3"
           />
           <p className="text-muted-foreground">You've been invited to a chess match.</p>
         </div>
