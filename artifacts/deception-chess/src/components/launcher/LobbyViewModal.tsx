@@ -16,6 +16,7 @@ export const LobbyViewModal: React.FC<LobbyViewModalProps> = ({ onClose }) => {
     () => getStoredProfile().name
   );
   const [joinCode, setJoinCode] = useState("");
+  const [timeControl, setTimeControl] = useState<string>("none");
 
   const createGame = useCreateGame();
   const joinGame = useJoinGame();
@@ -34,7 +35,7 @@ export const LobbyViewModal: React.FC<LobbyViewModalProps> = ({ onClose }) => {
     }
     updateProfileName(playerName.trim(), playerName.trim().startsWith("Guest_"));
     createGame.mutate(
-      { data: { playerName: playerName.trim() } },
+      { data: { playerName: playerName.trim(), timeControl } as any },
       {
         onSuccess: (res) => {
           sessionStorage.setItem(`game_${res.gameId}_player`, res.playerId);
@@ -97,34 +98,53 @@ export const LobbyViewModal: React.FC<LobbyViewModalProps> = ({ onClose }) => {
         {/* Modal Body */}
         <div className="p-5 flex-1 overflow-y-auto space-y-5">
           {/* Create Match Section */}
-          <div className="bg-[#121218] border border-neutral-800/80 p-4 sm:p-5 rounded-lg flex flex-col md:flex-row items-center justify-between gap-4 shadow-sm">
-            <div className="flex-1 w-full space-y-1.5">
-              <div className="flex items-center justify-between">
-                <label className="text-xs font-tech font-semibold text-neutral-400 uppercase tracking-wider block">
-                  PLAYER NAME
-                </label>
-                <button
-                  type="button"
-                  onClick={handleSetGuest}
-                  className="text-[11px] font-mono text-red-400 hover:text-red-300 underline underline-offset-2 flex items-center cursor-pointer"
-                >
-                  <UserCheck className="w-3 h-3 mr-1" />
-                  Play as Guest
-                </button>
+          <div className="bg-[#121218] border border-neutral-800/80 p-4 sm:p-5 rounded-lg flex flex-col space-y-4 shadow-sm">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+              <div className="flex-1 w-full space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-tech font-semibold text-neutral-400 uppercase tracking-wider block">
+                    PLAYER NAME
+                  </label>
+                  <button
+                    type="button"
+                    onClick={handleSetGuest}
+                    className="text-[11px] font-mono text-red-400 hover:text-red-300 underline underline-offset-2 flex items-center cursor-pointer"
+                  >
+                    <UserCheck className="w-3 h-3 mr-1" />
+                    Play as Guest
+                  </button>
+                </div>
+                <input
+                  type="text"
+                  value={playerName}
+                  onChange={(e) => setPlayerName(e.target.value)}
+                  placeholder="Enter Player Name..."
+                  className="w-full bg-[#08080a] border border-neutral-800 focus:border-red-500/80 px-3.5 py-2.5 rounded-md font-mono text-sm text-neutral-100 placeholder:text-neutral-600 focus:outline-none transition-colors"
+                />
               </div>
-              <input
-                type="text"
-                value={playerName}
-                onChange={(e) => setPlayerName(e.target.value)}
-                placeholder="Enter Player Name..."
-                className="w-full bg-[#08080a] border border-neutral-800 focus:border-red-500/80 px-3.5 py-2.5 rounded-md font-mono text-sm text-neutral-100 placeholder:text-neutral-600 focus:outline-none transition-colors"
-              />
+
+              <div className="w-full md:w-48 space-y-1.5">
+                <label className="text-xs font-tech font-semibold text-neutral-400 uppercase tracking-wider block">
+                  TIME CONTROL
+                </label>
+                <select
+                  value={timeControl}
+                  onChange={(e) => setTimeControl(e.target.value)}
+                  className="w-full bg-[#08080a] border border-neutral-800 focus:border-red-500/80 px-3 py-2.5 rounded-md font-mono text-xs text-neutral-100 focus:outline-none transition-colors"
+                >
+                  <option value="none">No Clock (Unlimited)</option>
+                  <option value="3m">3 min Blitz</option>
+                  <option value="5m">5 min Blitz</option>
+                  <option value="10m">10 min Rapid</option>
+                  <option value="60s_turn">60s Turn Countdown</option>
+                </select>
+              </div>
             </div>
 
             <button
               onClick={handleCreateGame}
               disabled={createGame.isPending}
-              className="w-full md:w-auto h-11 px-6 bg-red-600 hover:bg-red-500 active:bg-red-700 text-white font-tech font-bold text-xs tracking-widest uppercase rounded-md shadow-md flex items-center justify-center space-x-2 shrink-0 transition-all duration-150 active:scale-[0.98] cursor-pointer disabled:opacity-50"
+              className="w-full h-11 px-6 bg-red-600 hover:bg-red-500 active:bg-red-700 text-white font-tech font-bold text-xs tracking-widest uppercase rounded-md shadow-md flex items-center justify-center space-x-2 shrink-0 transition-all duration-150 active:scale-[0.98] cursor-pointer disabled:opacity-50"
             >
               {createGame.isPending ? (
                 <Loader2 className="w-4 h-4 animate-spin" />

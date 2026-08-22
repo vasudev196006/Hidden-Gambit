@@ -28,6 +28,9 @@ try {
     Write-Host "Warning: fnm not found or Node 22 not available. Using system Node." -ForegroundColor Yellow
 }
 
+# Clear stale processes on ports 5000 and 3000 to avoid EADDRINUSE
+Get-NetTCPConnection -LocalPort 5000, 3000 -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue }
+
 # Start API server in background window (using pre-built dist - no rebuild needed)
 Write-Host "`nStarting API server on port 5000 (using pre-built dist)..." -ForegroundColor Cyan
 $fnmSetup = '$env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User") + ";C:\Users\vasudev\AppData\Roaming\npm;C:\Program Files\nodejs"; try { fnm env --use-on-cd --shell power-shell | Out-String | Invoke-Expression; fnm use 22 } catch {}'

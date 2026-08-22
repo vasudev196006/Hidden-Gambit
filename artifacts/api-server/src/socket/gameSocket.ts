@@ -51,7 +51,30 @@ export function buildGameState(game: any, requestingPlayerId?: string) {
     moveCount: game.moveCount,
     lastMoveFrom: lastEntry?.from ?? null,
     lastMoveTo: lastEntry?.to ?? null,
+    moveHistory: history,
+    timeControl: game.timeControl ?? "none",
+    whiteTimeMs: game.whiteTimeMs ?? null,
+    blackTimeMs: game.blackTimeMs ?? null,
+    turnStartedAt: game.turnStartedAt ? new Date(game.turnStartedAt).getTime() : null,
+    rematchRequestedBy: game.rematchRequestedBy ?? null,
   };
+}
+
+function deductTurnClock(game: any) {
+  if (game.status === "active" && game.timeControl && game.timeControl !== "none" && game.turnStartedAt) {
+    const elapsed = Date.now() - new Date(game.turnStartedAt).getTime();
+    if (game.timeControl === "60s_turn") {
+      if (game.turn === "white") game.whiteTimeMs = 60000;
+      else game.blackTimeMs = 60000;
+    } else {
+      if (game.turn === "white" && game.whiteTimeMs != null) {
+        game.whiteTimeMs = Math.max(0, game.whiteTimeMs - elapsed);
+      } else if (game.turn === "black" && game.blackTimeMs != null) {
+        game.blackTimeMs = Math.max(0, game.blackTimeMs - elapsed);
+      }
+    }
+  }
+  game.turnStartedAt = new Date();
 }
 
 function getAuthorizedPlayerId(socket: Socket, payloadPlayerId?: string): { playerId: string | null; error?: string } {
@@ -145,6 +168,7 @@ export function registerGameSocket(io: SocketServer): void {
       game.fen = result.newFen;
       game.turn = game.turn === "white" ? "black" : "white";
       game.moveCount += 1;
+      deductTurnClock(game);
       const promotionSuffix = result.promotion && promotion ? ` (promoted to ${promotion === "q" ? "queen" : promotion === "r" ? "rook" : promotion === "b" ? "bishop" : "knight"})` : "";
       game.lastEvent = `${playerColor === "white" ? "White" : "Black"} moved from ${from} to ${to}${promotionSuffix}`;
       const history = (game.moveHistory as any[]) ?? [];
@@ -432,6 +456,15 @@ export function registerGameSocket(io: SocketServer): void {
         }
       }
 
+      const history = (game.moveHistory as any[]) ?? [];
+      history.push({
+        type: "investigation",
+        player: playerColor,
+        square: suspectSquare,
+        success: suspectSquare === opponentImpostorSquare,
+      });
+      game.moveHistory = history as any;
+
       const saved = await saveGame(game);
       const sockets = await io.in(gameId).fetchSockets();
       for (const s of sockets) {
@@ -504,6 +537,15 @@ export function registerGameSocket(io: SocketServer): void {
       game.penaltyTargetColor = null;
       game.lastEvent = `${choosingName} removed ${penalizedName}'s ${penaltyChoice} on ${square}!`;
 
+      const history = (game.moveHistory as any[]) ?? [];
+      history.push({
+        type: "penalty",
+        player: playerColor,
+        square,
+        pieceType: penaltyChoice,
+      });
+      game.moveHistory = history as any;
+
       const saved = await saveGame(game);
       const sockets = await io.in(gameId).fetchSockets();
       for (const s of sockets) {
@@ -535,6 +577,128 @@ export function registerGameSocket(io: SocketServer): void {
       const sockets = await io.in(gameId).fetchSockets();
       for (const s of sockets) {
         s.emit("gameState", buildGameState(saved, s.data.playerId));
+      }
+    });
+
+    socket.on("sendEmote", async ({ gameId, playerId: rawPlayerId, emote }: { gameId: string; playerId: string; emote: string }) => {
+      const auth = getAuthorizedPlayerId(socket, rawPlayerId);
+      if (auth.error || !auth.playerId) return;
+      const playerId = auth.playerId;
+      const effectiveGameId = socket.data.gameId || gameId;
+
+      const game = await getGame(effectiveGameId);
+      if (!game) return;
+
+      const isWhite = playerId === game.whitePlayerId;
+      const isBlack = playerId === game.blackPlayerId;
+      if (!isWhite && !isBlack) return;
+
+      const color = isWhite ? "white" : "black";
+      io.in(effectiveGameId).emit("emoteReceived", { playerId, color, emote, id: Date.now() });
+    });
+
+    socket.on("requestRematch", async ({ gameId, playerId: rawPlayerId }: { gameId: string; playerId: string }) => {
+      const auth = getAuthorizedPlayerId(socket, rawPlayerId);
+      if (auth.error || !auth.playerId) return;
+      const playerId = auth.playerId;
+      const effectiveGameId = socket.data.gameId || gameId;
+
+      const game = await getGame(effectiveGameId);
+      if (!game || game.status !== "finished") return;
+
+      const isWhite = playerId === game.whitePlayerId;
+      const isBlack = playerId === game.blackPlayerId;
+      if (!isWhite && !isBlack) return;
+
+      if (!game.rematchRequestedBy) {
+        game.rematchRequestedBy = playerId;
+        game.lastEvent = `${isWhite ? game.whitePlayerName : game.blackPlayerName} requested a rematch!`;
+      } else if (game.rematchRequestedBy !== playerId) {
+        const oldWhiteId = game.whitePlayerId;
+        const oldWhiteName = game.whitePlayerName;
+        const oldBlackId = game.blackPlayerId;
+        const oldBlackName = game.blackPlayerName;
+
+        game.whitePlayerId = oldBlackId!;
+        game.whitePlayerName = oldBlackName!;
+        game.blackPlayerId = oldWhiteId;
+        game.blackPlayerName = oldWhiteName;
+
+        game.status = "selecting";
+        game.fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+        game.turn = "white";
+        game.whiteImpostorSquare = null;
+        game.blackImpostorSquare = null;
+        game.whiteImpostorUsed = false;
+        game.blackImpostorUsed = false;
+        game.whiteImpostorRevealed = null;
+        game.blackImpostorRevealed = null;
+        game.whiteInvestigationUsed = false;
+        game.blackInvestigationUsed = false;
+        game.securedSquares = [];
+        game.winner = null;
+        game.penaltyTargetColor = null;
+        game.moveCount = 0;
+        game.moveHistory = [];
+        game.rematchRequestedBy = null;
+        game.lastEvent = "Rematch accepted! Select your new secret impostor.";
+
+        if (game.timeControl === "3m") {
+          game.whiteTimeMs = 180000;
+          game.blackTimeMs = 180000;
+        } else if (game.timeControl === "5m") {
+          game.whiteTimeMs = 300000;
+          game.blackTimeMs = 300000;
+        } else if (game.timeControl === "10m") {
+          game.whiteTimeMs = 600000;
+          game.blackTimeMs = 600000;
+        } else if (game.timeControl === "60s_turn") {
+          game.whiteTimeMs = 60000;
+          game.blackTimeMs = 60000;
+        }
+      }
+
+      const saved = await saveGame(game);
+      const sockets = await io.in(effectiveGameId).fetchSockets();
+      for (const s of sockets) {
+        s.emit("gameState", buildGameState(saved, s.data.playerId));
+      }
+    });
+
+    socket.on("checkTimeout", async ({ gameId, playerId: rawPlayerId }: { gameId: string; playerId: string }) => {
+      const auth = getAuthorizedPlayerId(socket, rawPlayerId);
+      if (auth.error || !auth.playerId) return;
+      const effectiveGameId = socket.data.gameId || gameId;
+
+      const game = await getGame(effectiveGameId);
+      if (!game || game.status !== "active" || game.timeControl === "none" || !game.turnStartedAt) return;
+
+      const elapsed = Date.now() - new Date(game.turnStartedAt).getTime();
+      let timedOut = false;
+      let losingColor: "white" | "black" = "white";
+
+      if (game.timeControl === "60s_turn") {
+        if (elapsed >= 60000) {
+          timedOut = true;
+          losingColor = game.turn as "white" | "black";
+        }
+      } else {
+        const currentRemaining = game.turn === "white" ? game.whiteTimeMs! : game.blackTimeMs!;
+        if (currentRemaining - elapsed <= 0) {
+          timedOut = true;
+          losingColor = game.turn as "white" | "black";
+        }
+      }
+
+      if (timedOut) {
+        game.status = "finished";
+        game.winner = losingColor === "white" ? "black" : "white";
+        game.lastEvent = `${losingColor === "white" ? game.whitePlayerName : game.blackPlayerName} ran out of time!`;
+        const saved = await saveGame(game);
+        const sockets = await io.in(effectiveGameId).fetchSockets();
+        for (const s of sockets) {
+          s.emit("gameState", buildGameState(saved, s.data.playerId));
+        }
       }
     });
 

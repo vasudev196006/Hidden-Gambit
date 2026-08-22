@@ -25,6 +25,11 @@ export const gamesTable = pgTable("games", {
   penaltyTargetColor: text("penalty_target_color"),
   moveCount: integer("move_count").notNull().default(0),
   moveHistory: jsonb("move_history").notNull().default([]),
+  timeControl: text("time_control").notNull().default("none"),
+  whiteTimeMs: integer("white_time_ms"),
+  blackTimeMs: integer("black_time_ms"),
+  turnStartedAt: timestamp("turn_started_at", { withTimezone: true }),
+  rematchRequestedBy: text("rematch_requested_by"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 });

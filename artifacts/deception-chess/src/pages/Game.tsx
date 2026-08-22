@@ -18,6 +18,10 @@ import { soundManager } from "@/lib/soundEffects";
 import { getStoredTheme, BoardTheme } from "@/lib/boardTheme";
 import { recordMatchResult } from "@/lib/playerProfile";
 import { SettingsModal } from "@/components/launcher/SettingsModal";
+import { CapturedPieces } from "@/components/game/CapturedPieces";
+import { MoveHistoryPanel } from "@/components/game/MoveHistoryPanel";
+import { EmotePicker, EmoteItem } from "@/components/game/EmotePicker";
+import { GameClock } from "@/components/game/GameClock";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Dialog,
@@ -161,6 +165,24 @@ export default function Game() {
   // Settings modal state
   const [settingsOpen, setSettingsOpen] = useState(false);
 
+  // Reaction Emotes State
+  const [activeEmotes, setActiveEmotes] = useState<{ id: number; color: "white" | "black"; emote: string }[]>([]);
+
+  const handleSendEmote = useCallback((item: EmoteItem) => {
+    if (!id || !playerId) return;
+    socket.emit("sendEmote", { gameId: id, playerId, emote: item.emoji });
+  }, [id, playerId]);
+
+  const handleRequestRematch = useCallback(() => {
+    if (!id || !playerId) return;
+    socket.emit("requestRematch", { gameId: id, playerId });
+  }, [id, playerId]);
+
+  const handleTimeout = useCallback(() => {
+    if (!id || !playerId) return;
+    socket.emit("checkTimeout", { gameId: id, playerId });
+  }, [id, playerId]);
+
   // Read playerId — sessionStorage is per-tab (no cross-tab collision)
   const storedPlayerId = id ? (sessionStorage.getItem(`game_${id}_player`) ?? undefined) : undefined;
 
@@ -249,9 +271,17 @@ export default function Game() {
       toast({ title: "Invalid Move", description: error.message, variant: "destructive" });
     });
 
+    socket.on("emoteReceived", (data: { playerId: string; color: "white" | "black"; emote: string; id: number }) => {
+      setActiveEmotes((prev) => [...prev, { id: data.id, color: data.color, emote: data.emote }]);
+      setTimeout(() => {
+        setActiveEmotes((prev) => prev.filter((e) => e.id !== data.id));
+      }, 3000);
+    });
+
     return () => {
       socket.off("gameState");
       socket.off("moveError");
+      socket.off("emoteReceived");
       socket.disconnect();
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -843,16 +873,30 @@ export default function Game() {
 
           {/* Game over overlay */}
           {gameState.status === "finished" && (
-            <div className="absolute inset-0 bg-background/92 backdrop-blur-md flex flex-col items-center justify-center z-20 rounded-xl border border-border text-center p-6">
-              <h2 className="text-4xl font-mono font-bold mb-2 text-primary font-display uppercase tracking-widest">Match Complete</h2>
-              <p className="text-xl mb-6">
+            <div className="absolute inset-0 bg-background/92 backdrop-blur-md flex flex-col items-center justify-center z-20 rounded-xl border border-border text-center p-6 space-y-4">
+              <h2 className="text-4xl font-mono font-bold text-primary font-display uppercase tracking-widest">Match Complete</h2>
+              <p className="text-xl">
                 {gameState.winner === "draw"
                   ? "Stalemate — draw."
                   : `${gameState.winner === "white" ? gameState.whitePlayerName : gameState.blackPlayerName} wins.`}
               </p>
-              <Button onClick={() => setLocation("/")} variant="outline" className="font-mono">
-                Return to Lobby
-              </Button>
+              
+              <div className="flex flex-col sm:flex-row gap-3 pt-2">
+                <Button
+                  onClick={handleRequestRematch}
+                  className="font-mono bg-primary hover:bg-primary/90 gap-2"
+                >
+                  <Swords className="h-4 w-4" />
+                  {(gameState as any).rematchRequestedBy
+                    ? (gameState as any).rematchRequestedBy === playerId
+                      ? "Awaiting Opponent..."
+                      : "Accept Rematch!"
+                    : "Request Rematch"}
+                </Button>
+                <Button onClick={() => setLocation("/")} variant="outline" className="font-mono">
+                  Return to Lobby
+                </Button>
+              </div>
             </div>
           )}
         </div>
@@ -892,7 +936,7 @@ export default function Game() {
             </Button>
 
             <img 
-              src="/chess_logo.png" 
+              src="/logo_transparent.png" 
               alt="Hidden Gambit Logo" 
               className="h-10 w-auto object-contain cursor-pointer drop-shadow-[0_2px_10px_rgba(220,38,38,0.4)] hover:scale-105 transition-transform"
               onClick={() => setLocation("/")}
@@ -919,16 +963,54 @@ export default function Game() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <div className="flex justify-between items-center p-3 rounded-lg bg-background border border-border text-sm">
-              <div>
-                <p className="font-bold">{gameState.whitePlayerName}</p>
+            <div className="relative flex justify-between items-center p-3 rounded-lg bg-background border border-border text-sm">
+              <div className="flex flex-col">
+                <div className="flex items-center gap-2">
+                  <p className="font-bold">{gameState.whitePlayerName}</p>
+                  <GameClock
+                    timeControl={(gameState as any).timeControl ?? "none"}
+                    whiteTimeMs={(gameState as any).whiteTimeMs ?? null}
+                    blackTimeMs={(gameState as any).blackTimeMs ?? null}
+                    turnStartedAt={(gameState as any).turnStartedAt ?? null}
+                    turn={gameState.turn}
+                    status={gameState.status}
+                    displayFor="white"
+                    onTimeout={handleTimeout}
+                  />
+                </div>
                 <p className="text-xs text-muted-foreground uppercase">White</p>
+                <CapturedPieces fen={gameState.fen} displayFor="white" />
               </div>
-              <Swords className="h-4 w-4 text-muted-foreground" />
-              <div className="text-right">
-                <p className="font-bold">{gameState.blackPlayerName ?? "Waiting..."}</p>
+              <Swords className="h-4 w-4 text-muted-foreground shrink-0" />
+              <div className="flex flex-col items-end text-right">
+                <div className="flex items-center gap-2">
+                  <GameClock
+                    timeControl={(gameState as any).timeControl ?? "none"}
+                    whiteTimeMs={(gameState as any).whiteTimeMs ?? null}
+                    blackTimeMs={(gameState as any).blackTimeMs ?? null}
+                    turnStartedAt={(gameState as any).turnStartedAt ?? null}
+                    turn={gameState.turn}
+                    status={gameState.status}
+                    displayFor="black"
+                    onTimeout={handleTimeout}
+                  />
+                  <p className="font-bold">{gameState.blackPlayerName ?? "Waiting..."}</p>
+                </div>
                 <p className="text-xs text-muted-foreground uppercase">Black</p>
+                <CapturedPieces fen={gameState.fen} displayFor="black" />
               </div>
+
+              {/* Floating Emote Overlays */}
+              {activeEmotes.map((e) => (
+                <div
+                  key={e.id}
+                  className={`absolute -top-8 text-3xl animate-bounce z-30 drop-shadow-[0_4px_10px_rgba(0,0,0,0.5)] ${
+                    e.color === "white" ? "left-4" : "right-4"
+                  }`}
+                >
+                  {e.emote}
+                </div>
+              ))}
             </div>
 
             {gameState.status === "active" && (
@@ -951,15 +1033,25 @@ export default function Game() {
               </div>
             )}
 
-            {gameState.lastEvent && (
-              <div className="p-3 bg-secondary/40 rounded-lg text-xs border-l-2 border-primary font-mono" data-testid="last-event">
-                {gameState.lastEvent}
+            {/* Move History Log Panel */}
+            <div className="space-y-1 pt-1">
+              <div className="flex items-center justify-between text-xs font-mono text-muted-foreground">
+                <span>Move History</span>
+                <span>Total: {gameState.moveCount}</span>
+              </div>
+              <MoveHistoryPanel
+                history={(gameState as any).moveHistory ?? []}
+                whitePlayerName={gameState.whitePlayerName}
+                blackPlayerName={gameState.blackPlayerName ?? "Black"}
+              />
+            </div>
+
+            {/* Mind Games Quick Chat Emotes */}
+            {isPlayer && gameState.status === "active" && (
+              <div className="pt-1">
+                <EmotePicker onSelectEmote={handleSendEmote} />
               </div>
             )}
-
-            <div className="text-xs text-muted-foreground font-mono">
-              Move {gameState.moveCount}
-            </div>
           </CardContent>
         </Card>
 

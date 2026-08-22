@@ -25,20 +25,18 @@ This file tracks the status of bugs and improvements found in `error.md`.
 
 ## 🚀 Upcoming Player Experience & Feature Roadmap
 
-- [ ] **1. Game Clocks & Time Controls (Blitz / Rapid / Turn Countdown)**
-  - *Goal:* Allow players to select match time controls (e.g., 5 min Blitz, 10 min Rapid, or 30-60s per turn countdown) during room creation. Broadcast server-side timer state over WebSockets and automatically flag/forfeit on timeout.
-- [ ] **2. Single-Player Practice / Vs Bot Mode & Interactive Tutorial**
-  - *Goal:* Implement a solo practice mode against a basic engine/bot so players can test impostor strategies anytime. Build a 4-step interactive tutorial explaining impostor selection, activation, and investigation mechanics.
-- [ ] **3. Full Move History & Event Log (PGN Notation Panel)**
-  - *Goal:* Replace single `lastEvent` string with a scrollable move history panel displaying standard chess move notation alongside variant events (*"White activated Impostor at e4"*, *"Black investigated e-file — SUCCESS"*).
-- [ ] **4. One-Click Rematch System**
-  - *Goal:* Add a "Request Rematch" button on the Game Over modal that automatically starts a new match with swapped colors (`White ↔ Black`) once both players accept.
-- [ ] **5. Captured Pieces & Material Advantage Counter**
-  - *Goal:* Display captured pieces tray and relative point advantage (`+3`, `+1`) alongside player profile HUDs.
-- [ ] **6. Mind Games & Reaction Emotes (Quick Chat)**
-  - *Goal:* Add floating emoji reaction overlays (🤔 *Thinking*, 😈 *Bluffing*, 🔍 *Suspicious*, 💥 *Busted!*) to enhance the psychological deduction gameplay.
-- [ ] **7. Spectator Mode**
-  - *Goal:* Allow non-player connections to view live ongoing matches via game link with both secret impostors hidden.
+- [x] **1. Game Clocks & Time Controls (Blitz / Rapid / Turn Countdown)**
+  - *Status:* Completed. Match time controls (3m, 5m Blitz, 10m Rapid, 60s Turn Countdown) selectable during room creation with real-time digital clocks & server-side timeout flagging.
+- [x] **3. Full Move History & Event Log (PGN Notation Panel)**
+  - *Status:* Completed. Real-time scrollable move history panel displaying algebraic moves paired with variant badges (Impostor activations, Investigations, Penalties).
+- [x] **4. One-Click Rematch System**
+  - *Status:* Completed. "Request Rematch" button on Game Over overlay that swaps player colors (`White ↔ Black`) and resets the game state upon dual acceptance.
+- [x] **5. Captured Pieces & Material Advantage Counter**
+  - *Status:* Completed. Dynamic captured pieces tray computing missing piece icons and numerical point advantage (`+3`, `+1`) from active FENs.
+- [x] **6. Mind Games & Reaction Emotes (Quick Chat)**
+  - *Status:* Completed. Quick reaction emote picker bar broadcasting animated floating emoji overlays above player HUDs.
+
+*(Note: Items 2 (Vs Bot / Tutorial) and 7 (Spectator Mode) excluded per player preference)*
 
 ## No Action Required (Not a Bug)
 

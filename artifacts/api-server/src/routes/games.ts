@@ -62,14 +62,17 @@ router.post("/games", async (req, res): Promise<void> => {
   const gameId = generateId();
   const playerId = generatePlayerId();
 
+  const timeControl = (req.body as any)?.timeControl || "none";
+
   const game = await createGameRecord({
     id: gameId,
     whitePlayerId: playerId,
     whitePlayerName: parsed.data.playerName,
     status: "waiting",
+    timeControl,
   });
 
-  req.log.info({ gameId, playerId }, "Game created");
+  req.log.info({ gameId, playerId, timeControl }, "Game created");
 
   res.status(201).json({
     gameId: game.id,
@@ -205,6 +208,12 @@ router.post("/games/:id/impostor", async (req, res): Promise<void> => {
   const bothReady = !!(game.whiteImpostorSquare && game.blackImpostorSquare);
   if (bothReady) {
     game.status = "active";
+    const tc = game.timeControl ?? "none";
+    if (tc === "3m") { game.whiteTimeMs = 180000; game.blackTimeMs = 180000; }
+    else if (tc === "5m") { game.whiteTimeMs = 300000; game.blackTimeMs = 300000; }
+    else if (tc === "10m") { game.whiteTimeMs = 600000; game.blackTimeMs = 600000; }
+    else if (tc === "60s_turn") { game.whiteTimeMs = 60000; game.blackTimeMs = 60000; }
+    if (tc !== "none") { game.turnStartedAt = new Date(); }
   }
 
   const saved = await saveGame(game);
