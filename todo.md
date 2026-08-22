@@ -38,6 +38,19 @@ This file tracks the status of bugs and improvements found in `error.md`.
 
 *(Note: Items 2 (Vs Bot / Tutorial) and 7 (Spectator Mode) excluded per player preference)*
 
+## 🔒 Pre-Web Production Deployment Checklist
+
+- [ ] **1. Restrict CORS & Origin Security**
+  - *Goal:* Replace wildcard `origin: "*"` in `index.ts` & `app.ts` with domain environment variables (`process.env.CLIENT_ORIGIN`) to prevent unauthorized cross-origin requests.
+- [ ] **2. Express & Socket Rate Limiting**
+  - *Goal:* Integrate `express-rate-limit` on `/api/games` creation/join HTTP endpoints and limit WebSocket event submission frequency to prevent DDoS and room spamming.
+- [ ] **3. Production Build & Environment Setup**
+  - *Goal:* Set `NODE_ENV=production` and ensure static frontend assets in `artifacts/deception-chess/dist` are served properly by Express in monolith mode or via Vercel/Netlify proxy.
+- [ ] **4. HTTPS & WSS (SSL Encryption)**
+  - *Goal:* Enforce SSL/TLS encryption for live production hosting so connections run over `https://` and `wss://`.
+- [ ] **5. Production Database Connection Pooling**
+  - *Goal:* Configure PostgreSQL `DATABASE_URL` with SSL connection pooling (`sslmode=require`) via Neon, Supabase, or PgBouncer.
+
 ## No Action Required (Not a Bug)
 
 - [x] **2. Investigation penalty may remove incorrect pieces when bishop missing**
